@@ -25,6 +25,12 @@ object BallDecomposition {
     (ids.head, ids.tail)
   }
 
+  def removeSelfLoops(data: (Int, Seq[Int])) = {
+    data match {
+      case (n, ball) => (n, ball.filter( _ != n ))
+    }
+  }
+
   def countCardinalities(data: (Int, Seq[Int])) = {
     data match {
       case (n, ball) => (n, (ball.size, ball))
@@ -36,7 +42,7 @@ object BallDecomposition {
       case (n, (size, ball)) => {
         ball.map { ballNeighbour =>
           (ballNeighbour, (n, size))
-        }
+        } :+ (n, (n, size))
       }
     }
   }
@@ -87,26 +93,27 @@ object BallDecomposition {
       var balls = graph.map(data => data)
 
       for( i <- 1 until radius ) {
-        println("=================================")
         println("Computing ball of radius " + (i+1))
         val augmentedGraph = graph.join(balls)
-        println("Augmented graph")
         balls = augmentedGraph.flatMap(sendBall).reduceByKey(reduceBalls)
-        println("Balls")
-        balls.collect.foreach { println(_) }
       }
 
+      println("Balls")
+      balls.collect.foreach { println(_) }
       // at this point we have the RDD balls that contains pairs of the form
       // (nodeID, ball), hence we can count cardinalities of each ball
       // This RDD is in the format (id, color)
-      val colors = balls.map(countCardinalities)
+      val colors = balls.map(removeSelfLoops)
+                        .map(countCardinalities)
                         .flatMap(sendCardinalities)
                         .reduceByKey(maxCardinality)
                         .map(removeCardinality)
                         .cache()
 
+      println("Colors")
+      colors.collect.foreach { println(_) }
 
-      colors.saveAsTextFile("output.out")
+//      colors.saveAsTextFile("output.out")
 //      val bloom = BloomFilter(numNodes, 0.01)
       val centers = colors.filter(isBallCenter).map(pair => pair._1)
 
