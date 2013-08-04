@@ -9,7 +9,7 @@ object BallDecomposition {
   def sendBall(data: (Int, (Seq[Int],Seq[Int]))) = {
     data match {
       case (n, (neighbours,ball)) => {
-        neighbours.map{neigh => (neigh, ball)}
+        neighbours.map{neigh => (neigh, ball)} :+ (n, ball)
       }
     }
   }
@@ -21,7 +21,8 @@ object BallDecomposition {
 
   def convertInput(line: String) = {
     val ids = line.split(" ").map(_.toInt).toSeq
-    (ids(0), ids.drop(1))
+//    ids.map((ids(0), _)).tail // we should remove the first element
+    (ids.head, ids.tail)
   }
 
   def countCardinalities(data: (Int, Seq[Int])) = {
@@ -61,7 +62,6 @@ object BallDecomposition {
   }
 
   def isBallCenter(data: (Int, Int)) = {
-    println(data)
     data._1 == data._2
   }
 
@@ -81,13 +81,19 @@ object BallDecomposition {
 
       val graph = inputDataset.map(convertInput).cache()
 
+      graph.collect.foreach { println(_) }
+
       // FIXME look if the id function is necessary to deal with the RDD copy
       var balls = graph.map(data => data)
 
       for( i <- 1 until radius ) {
+        println("=================================")
         println("Computing ball of radius " + (i+1))
         val augmentedGraph = graph.join(balls)
+        println("Augmented graph")
         balls = augmentedGraph.flatMap(sendBall).reduceByKey(reduceBalls)
+        println("Balls")
+        balls.collect.foreach { println(_) }
       }
 
       // at this point we have the RDD balls that contains pairs of the form
