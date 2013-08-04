@@ -71,6 +71,13 @@ object BallDecomposition {
     data._1 == data._2
   }
 
+  def sortPair(pair: (Int, Int)) = {
+    if (pair._1 < pair._2)
+      pair
+    else
+      (pair._2, pair._1)
+  }
+
 
   def main(args: Array[String]) {
 
@@ -138,12 +145,16 @@ object BallDecomposition {
       val reduced = graph
            .join(colors) // (id, (neighbours, color))
            .flatMap(pair => pair match { // (neigh, colorId)
-              case (id, (neighbours, color)) =>
-                neighbours.map((_, color))
-            }).join(colors) // (neigh, (colorId, colorNeigh))
-            .map(_ match { // (colorId, colorNeigh)
-              case (neigh, (colorId, colorNeigh)) => (colorId, colorNeigh)
-            }).distinct()
+             case (id, (neighbours, color)) =>
+               neighbours.map((_, color))
+           })
+           .join(colors) // (neigh, (colorId, colorNeigh))
+           .map(_ match { // (colorId, colorNeigh)
+             case (neigh, (colorId, colorNeigh)) => (colorId, colorNeigh)
+           })
+           .map(sortPair)
+           .distinct()
+           .filter(pair => pair._1 != pair._2) // remove self loops
 
       reduced.collect.foreach(println(_))
 
