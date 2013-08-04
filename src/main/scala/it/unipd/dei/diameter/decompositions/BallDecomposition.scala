@@ -87,7 +87,7 @@ object BallDecomposition {
 
       val graph = inputDataset.map(convertInput).cache()
 
-      graph.collect.foreach { println(_) }
+//      graph.collect.foreach { println(_) }
 
       // FIXME look if the id function is necessary to deal with the RDD copy
       var balls = graph.map(data => data)
@@ -98,8 +98,8 @@ object BallDecomposition {
         balls = augmentedGraph.flatMap(sendBall).reduceByKey(reduceBalls)
       }
 
-      println("Balls")
-      balls.collect.foreach { println(_) }
+//      println("Balls")
+//      balls.collect.foreach { println(_) }
       // at this point we have the RDD balls that contains pairs of the form
       // (nodeID, ball), hence we can count cardinalities of each ball
       // This RDD is in the format (id, color)
@@ -110,8 +110,8 @@ object BallDecomposition {
                         .map(removeCardinality)
                         .cache()
 
-      println("Colors")
-      colors.collect.foreach { println(_) }
+//      println("Colors")
+//      colors.collect.foreach { println(_) }
 
 //      colors.saveAsTextFile("output.out")
 //      val bloom = BloomFilter(numNodes, 0.01)
