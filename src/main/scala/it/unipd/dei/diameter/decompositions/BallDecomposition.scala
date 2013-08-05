@@ -6,7 +6,18 @@ import it.unipd.dei.diameter.Timer.timed
 
 object BallDecomposition {
 
-  def sendBall(data: (Int, (Seq[Int],Seq[Int]))) = {
+  // Type definitions
+  // ================
+
+  type NodeId = Int
+  type Neighbourhood = Seq[NodeId]
+  type Ball = Seq[NodeId]
+  type Color = Int
+
+  // Map and Reduce functions
+  // ========================
+
+  def sendBall(data: (NodeId, (Ball, Ball))) = {
     data match {
       case (n, (neighbours,ball)) => {
         neighbours.map{neigh => (neigh, ball)} :+ (n, ball)
@@ -14,30 +25,29 @@ object BallDecomposition {
     }
   }
 
-  def reduceBalls(ballA: Seq[Int], ballB: Seq[Int]) = {
+  def reduceBalls(ballA: Ball, ballB: Ball) = {
       // TODO use a merge of sorted sequences
       (ballA.distinct ++ ballB.distinct).distinct
   }
 
   def convertInput(line: String) = {
     val ids = line.split(" ").map(_.toInt).toSeq
-//    ids.map((ids(0), _)).tail // we should remove the first element
     (ids.head, ids.tail)
   }
 
-  def removeSelfLoops(data: (Int, Seq[Int])) = {
+  def removeSelfLoops(data: (NodeId, Ball)) = {
     data match {
       case (n, ball) => (n, ball.filter( _ != n ))
     }
   }
 
-  def countCardinalities(data: (Int, Seq[Int])) = {
+  def countCardinalities(data: (NodeId, Ball)) = {
     data match {
       case (n, ball) => (n, (ball.size, ball))
     }
   }
 
-  def sendCardinalities(data: (Int, (Int, Seq[Int]))) = {
+  def sendCardinalities(data: (NodeId, (Int, Ball))) = {
     data match {
       case (n, (size, ball)) => {
         ball.map { ballNeighbour =>
@@ -50,7 +60,7 @@ object BallDecomposition {
   /**
    * Input in the form (id, size)
    */
-  def maxCardinality(cardA: (Int, Int), cardB: (Int, Int)) = {
+  def maxCardinality(cardA: (NodeId, Int), cardB: (NodeId, Int)) = {
     if(cardA._2 > cardB._2)
       cardA
     else if(cardA._2 < cardB._2)
@@ -61,13 +71,13 @@ object BallDecomposition {
       cardB
   }
 
-  def removeCardinality(data: (Int, (Int, Int))) = {
+  def removeCardinality(data: (NodeId, (Color, Int))) = {
     data match {
       case (id, (color, _)) => (id, color)
     }
   }
 
-  def isBallCenter(data: (Int, Int)) = {
+  def isBallCenter(data: (NodeId, NodeId)) = {
     data._1 == data._2
   }
 
@@ -81,9 +91,9 @@ object BallDecomposition {
   // Functions on RDDs
   // =================
 
-  def computeBalls( graph: RDD[(Int, Seq[Int])],
+  def computeBalls( graph: RDD[(NodeId, Neighbourhood)],
                     radius: Int
-                  ) : RDD[(Int, Seq[Int])] =
+                  ) : RDD[(NodeId, Ball)] =
   {
     var balls = graph.map(data => data)
 
@@ -103,7 +113,7 @@ object BallDecomposition {
    * (nodeID, ball), hence we can count cardinalities of each ball
    * The output RDD is in the format (id, color).
    */
-  def computeColors( balls: RDD[(Int, Seq[Int])] ) : RDD[(Int, Int)] = {
+  def computeColors( balls: RDD[(NodeId, Ball)] ) : RDD[(NodeId, Color)] = {
     balls.map(removeSelfLoops)
          .map(countCardinalities)
          .flatMap(sendCardinalities)
@@ -128,8 +138,8 @@ object BallDecomposition {
    * At this point it is sufficient only to filter out duplicates and we
    * have the reduced graph.
    */
-  def reduceGraph( graph: RDD[(Int, Seq[Int])],
-                   colors: RDD[(Int, Int)]
+  def reduceGraph( graph: RDD[(NodeId, Neighbourhood)],
+                   colors: RDD[(NodeId, Color)]
                  ) : RDD[(Int, Int)] = {
     graph.join(colors) // (id, (neighbours, color))
          .flatMap(pair => pair match { // (neigh, colorId)
@@ -145,7 +155,7 @@ object BallDecomposition {
          .filter { case (src, dst) => src != dst } // remove self loops
   }
 
-  def finalize( reduced: RDD[(Int, Int)] ) = {
+  def finalize( reduced: RDD[(NodeId, NodeId)] ) = {
     println("Number of edges")
     val numEdges = reduced.count()
     println(numEdges)
