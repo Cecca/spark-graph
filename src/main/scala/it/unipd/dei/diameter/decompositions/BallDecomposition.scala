@@ -142,8 +142,17 @@ object BallDecomposition {
          })
          .map(sortPair)
          .distinct()
-//         .filter(pair => pair._1 != pair._2) // remove self loops
-         .filter { case (src, dst) => src != dst }
+         .filter { case (src, dst) => src != dst } // remove self loops
+  }
+
+  def finalize( reduced: RDD[(Int, Int)] ) = {
+    println("Number of edges")
+    val numEdges = reduced.count()
+    println(numEdges)
+    println("Number of nodes")
+    val numReducedNodes =
+      reduced.flatMap(pair => Seq(pair._1, pair._2)).distinct().count()
+    println(numReducedNodes)
   }
 
   def main(args: Array[String]) {
@@ -166,13 +175,7 @@ object BallDecomposition {
 
       reduced.collect.foreach(println(_))
 
-      println("Number of edges")
-      val numEdges = reduced.count()
-      println(numEdges)
-      println("Number of nodes")
-      val numReducedNodes =
-        reduced.flatMap(pair => Seq(pair._1, pair._2)).distinct().count()
-      println(numReducedNodes)
+      finalize(reduced)
 
       println("Done")
     }
