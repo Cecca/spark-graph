@@ -1,6 +1,6 @@
 package it.unipd.dei.diameter.decompositions
 
-import spark.SparkContext
+import spark.{RDD, SparkContext}
 import SparkContext._
 import it.unipd.dei.diameter.Timer.timed
 
@@ -78,6 +78,73 @@ object BallDecomposition {
       (pair._2, pair._1)
   }
 
+  // Functions on RDDs
+  // =================
+
+  def computeBalls( graph: RDD[(Int, Seq[Int])],
+                    radius: Int
+                  ) : RDD[(Int, Seq[Int])] =
+  {
+    var balls = graph.map(data => data)
+
+    for( i <- 1 until radius ) {
+      println("Computing ball of radius " + (i+1))
+      val augmentedGraph = graph.join(balls)
+      balls = augmentedGraph.flatMap(sendBall).reduceByKey(reduceBalls)
+    }
+
+    return balls
+  }
+
+  /**
+   * Computes the color of each node.
+   *
+   * The input is an RDD that contains pairs of the form
+   * (nodeID, ball), hence we can count cardinalities of each ball
+   * The output RDD is in the format (id, color).
+   */
+  def computeColors( balls: RDD[(Int, Seq[Int])] ) : RDD[(Int, Int)] = {
+    balls.map(removeSelfLoops)
+         .map(countCardinalities)
+         .flatMap(sendCardinalities)
+         .reduceByKey(maxCardinality)
+         .map(removeCardinality)
+         .cache()
+  }
+
+  /**
+   * The input is the original graph, and the colors RDD.
+   *
+   * The graph is then converted to a representation as a sparse
+   * matrix, using the following format:
+   *
+   *     (neigh, colorId)
+   *
+   * then this dataset is joined with the colors one,
+   * using the `neigh` element as key in order to get the following pairs
+   *
+   *     (colorId, colorNeigh)
+   *
+   * At this point it is sufficient only to filter out duplicates and we
+   * have the reduced graph.
+   */
+  def reduceGraph( graph: RDD[(Int, Seq[Int])],
+                   colors: RDD[(Int, Int)]
+                 ) : RDD[(Int, Int)] = {
+    graph.join(colors) // (id, (neighbours, color))
+         .flatMap(pair => pair match { // (neigh, colorId)
+           case (id, (neighbours, color)) =>
+             neighbours.map((_, color))
+         })
+         .join(colors) // (neigh, (colorId, colorNeigh))
+         .map(_ match { // (colorId, colorNeigh)
+           case (neigh, (colorId, colorNeigh)) => (colorId, colorNeigh)
+         })
+         .map(sortPair)
+         .distinct()
+//         .filter(pair => pair._1 != pair._2) // remove self loops
+         .filter { case (src, dst) => src != dst }
+  }
 
   def main(args: Array[String]) {
 
@@ -88,75 +155,24 @@ object BallDecomposition {
 
       val sc = new SparkContext(master, "Ball Decomposition")
 
-      val inputDataset = sc.textFile(input)
-      // FIXME this is dangerous with large datasets: possible overflow
-      val numNodes = inputDataset.count().toInt
+      // Graph loading
+      val graph = sc.textFile(input).map(convertInput).cache()
 
-      val graph = inputDataset.map(convertInput).cache()
+      val balls = computeBalls(graph, radius)
 
-//      graph.collect.foreach { println(_) }
+      val colors = computeColors(balls)
 
-      // FIXME look if the id function is necessary to deal with the RDD copy
-      var balls = graph.map(data => data)
-
-      for( i <- 1 until radius ) {
-        println("Computing ball of radius " + (i+1))
-        val augmentedGraph = graph.join(balls)
-        balls = augmentedGraph.flatMap(sendBall).reduceByKey(reduceBalls)
-      }
-
-//      println("Balls")
-//      balls.collect.foreach { println(_) }
-      // at this point we have the RDD balls that contains pairs of the form
-      // (nodeID, ball), hence we can count cardinalities of each ball
-      // This RDD is in the format (id, color)
-      val colors = balls.map(removeSelfLoops)
-                        .map(countCardinalities)
-                        .flatMap(sendCardinalities)
-                        .reduceByKey(maxCardinality)
-                        .map(removeCardinality)
-                        .cache()
-
-//      println("Colors")
-//      colors.collect.foreach { println(_) }
-
-//      colors.saveAsTextFile("output.out")
-//      val bloom = BloomFilter(numNodes, 0.01)
-      val centers = colors.filter(isBallCenter).map(pair => pair._1)
-
-      val nReduced = centers.count
-      println("Number of nodes in reduced graph: " + nReduced)
-
-      // Now that we have the centers we should represent the graph as a sparse
-      // matrix, using the following format:
-      //
-      //     (neigh, colorId)
-      //
-      // then we should join this dataset with the colors one,
-      // using the `neigh` element as key in order to get the following pairs
-      //
-      //     (colorNeigh, colorId)
-      //
-      // Then we should reverse the pairs.
-      //
-      // At this point it is sufficient only to filter out duplicates and we
-      // have the reduced graph.
-
-      val reduced = graph
-           .join(colors) // (id, (neighbours, color))
-           .flatMap(pair => pair match { // (neigh, colorId)
-             case (id, (neighbours, color)) =>
-               neighbours.map((_, color))
-           })
-           .join(colors) // (neigh, (colorId, colorNeigh))
-           .map(_ match { // (colorId, colorNeigh)
-             case (neigh, (colorId, colorNeigh)) => (colorId, colorNeigh)
-           })
-           .map(sortPair)
-           .distinct()
-           .filter(pair => pair._1 != pair._2) // remove self loops
+      val reduced = reduceGraph(graph, colors)
 
       reduced.collect.foreach(println(_))
+
+      println("Number of edges")
+      val numEdges = reduced.count()
+      println(numEdges)
+      println("Number of nodes")
+      val numReducedNodes =
+        reduced.flatMap(pair => Seq(pair._1, pair._2)).distinct().count()
+      println(numReducedNodes)
 
       println("Done")
     }
