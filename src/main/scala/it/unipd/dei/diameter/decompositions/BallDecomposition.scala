@@ -41,6 +41,7 @@ object BallDecomposition {
     }
   }
 
+
   def countCardinalities(data: (NodeId, Ball)) = {
     data match {
       case (n, ball) => (n, (ball.size, ball))
