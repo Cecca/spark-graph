@@ -78,10 +78,6 @@ object BallDecomposition {
     }
   }
 
-  def isBallCenter(data: (NodeId, NodeId)) = {
-    data._1 == data._2
-  }
-
   def sortPair(pair: (Int, Int)) = {
     if (pair._1 < pair._2)
       pair
