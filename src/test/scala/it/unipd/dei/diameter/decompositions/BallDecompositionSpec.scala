@@ -2,6 +2,8 @@ package it.unipd.dei.diameter.decompositions
 
 import org.scalatest._
 import BallDecomposition._
+import spark.{RDD, SparkContext}
+import SparkContext._
 
 class BallDecompositionSpec extends FlatSpec {
 
@@ -92,6 +94,23 @@ class BallDecompositionSpec extends FlatSpec {
     assert( sortPair((2,1)) === (1,2) )
     assert( sortPair((1,1)) === (1,1) )
 
+  }
+
+  "Function reduceGraph" should "contract a star to a single node" in {
+
+    System.clearProperty("spark.driver.port")
+    val sc = new SparkContext("local", "reduceGraph test")
+
+    val graph = sc.parallelize(Seq( (0, Seq(1,2,3)),
+                                    (1, Seq(0)),
+                                    (2, Seq(0)),
+                                    (3, Seq(0)) ))
+    val colors = sc.parallelize(Seq( (0,0),
+                                     (1,0),
+                                     (2,0),
+                                     (3,0) ))
+    val reduced = reduceGraph(graph, colors)
+    assert( reduced.collect() === Array((0,0)) )
   }
 
 }

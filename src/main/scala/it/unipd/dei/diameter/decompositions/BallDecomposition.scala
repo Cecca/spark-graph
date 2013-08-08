@@ -141,7 +141,7 @@ object BallDecomposition {
     graph.join(colors) // (id, (neighbours, color))
          .flatMap(pair => pair match { // (neigh, colorId)
            case (id, (neighbours, color)) =>
-             neighbours.map((_, color))
+             neighbours.map((_, color)) :+ (id, color)
          })
          .join(colors) // (neigh, (colorId, colorNeigh))
          .map(_ match { // (colorId, colorNeigh)
@@ -149,7 +149,7 @@ object BallDecomposition {
          })
          .map(sortPair)
          .distinct()
-         .filter { case (src, dst) => src != dst } // remove self loops
+//         .filter { case (src, dst) => src != dst } // remove self loops
   }
 
   def finalize( reduced: RDD[(NodeId, NodeId)] ) = {
@@ -172,11 +172,17 @@ object BallDecomposition {
       val sc = new SparkContext(master, "Ball Decomposition")
 
       // Graph loading
-      val graph = sc.textFile(input).map(convertInput).cache()
+      val graph = sc.textFile(input).map(convertInput)
+      val graphCount = graph.count()
+      println("Number of nodes: " + graphCount)
 
-      val balls = computeBalls(graph, radius)
+      val balls = computeBalls(graph, radius).cache()
+      val ballsCount = balls.count()
+      println("Number of balls: " + ballsCount)
 
       val colors = computeColors(balls)
+      val colorsCount = colors.count()
+      println("Number of colors: " + colorsCount)
 
       val reduced = reduceGraph(graph, colors)
 
