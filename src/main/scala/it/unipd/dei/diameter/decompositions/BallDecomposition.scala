@@ -119,6 +119,12 @@ object BallDecomposition {
          .cache()
   }
 
+  protected def toEdges(node: (NodeId, Neighbourhood)) = {
+    node match {
+      case (nodeId, neigh) => neigh.map((nodeId, _)) :+ (nodeId, nodeId)
+    }
+  }
+
   /**
    * The input is the original graph, and the colors RDD.
    *
@@ -137,19 +143,16 @@ object BallDecomposition {
    */
   def reduceGraph( graph: RDD[(NodeId, Neighbourhood)],
                    colors: RDD[(NodeId, Color)]
-                 ) : RDD[(Int, Int)] = {
-    graph.join(colors) // (id, (neighbours, color))
-         .flatMap(pair => pair match { // (neigh, colorId)
-           case (id, (neighbours, color)) =>
-             neighbours.map((_, color)) :+ (id, color)
-         })
-         .join(colors) // (neigh, (colorId, colorNeigh))
-         .map(_ match { // (colorId, colorNeigh)
-           case (neigh, (colorId, colorNeigh)) => (colorId, colorNeigh)
-         })
-         .map(sortPair)
-         .distinct()
-//         .filter { case (src, dst) => src != dst } // remove self loops
+                 ) = {
+    val edges = graph.flatMap(toEdges)
+    val sourceColored = edges.join(colors).map({
+      case (src, (dst, color)) => (dst, color)
+    })
+    val dstColored = sourceColored.join(colors).map({
+      case (dst, (srcColor, dstColor)) => (srcColor, dstColor)
+    })
+
+    dstColored.map(sortPair).distinct()
   }
 
   def finalize( reduced: RDD[(NodeId, NodeId)] ) = {

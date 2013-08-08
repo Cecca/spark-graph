@@ -110,6 +110,7 @@ class BallDecompositionSpec extends FlatSpec {
                                      (2,0),
                                      (3,0) ))
     val reduced = reduceGraph(graph, colors)
+//    reduced.collect().foreach(println(_))
     assert( reduced.collect() === Array((0,0)) )
   }
 
