@@ -114,4 +114,28 @@ class BallDecompositionSpec extends FlatSpec {
     assert( reduced.collect() === Array((0,0)) )
   }
 
+  it should "contract a chain with a star to a chain" in {
+
+    System.clearProperty("spark.driver.port")
+    val sc = new SparkContext("local", "reduceGraph test")
+
+    val graph = sc.parallelize(Seq( (0, Seq(1,2,3)),
+                                    (1, Seq(0)),
+                                    (2, Seq(0)),
+                                    (3, Seq(0,4)),
+                                    (4, Seq(3,5)),
+                                    (5, Seq(4))))
+    val colors = sc.parallelize(Seq((0,0),
+                                    (1,0),
+                                    (2,0),
+                                    (3,0),
+                                    (4,4),
+                                    (5,4)))
+    val reduced = reduceGraph(graph, colors)
+    assert( reduced.collect().sorted === Array((0,0),
+                                               (4,4),
+                                               (4,0),
+                                               (0,4)).sorted )
+  }
+
 }

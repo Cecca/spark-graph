@@ -13,6 +13,7 @@ object BallDecomposition {
   type Neighbourhood = Seq[NodeId]
   type Ball = Seq[NodeId]
   type Color = Int
+  type Cardinality = Int
 
   // Map and Reduce functions
   // ========================
@@ -48,20 +49,31 @@ object BallDecomposition {
     }
   }
 
-  def sendCardinalities(data: (NodeId, (Int, Ball))) = {
+  def sendCardinalities(data: (NodeId, (Cardinality, Ball)))
+                         : TraversableOnce[(NodeId, (NodeId, Cardinality))] = {
     data match {
       case (n, (size, ball)) => {
-        ball.map { ballNeighbour =>
-          (ballNeighbour, (n, size))
-        } :+ (n, (n, size))
+        ball.map { (_, (n, size)) } :+ (n, (n, size))
       }
+    }
+  }
+
+  /**
+   * Tells if the given node is a center, i.e. if it is not dominated by anyone.
+   */
+  def isCenter(data: (NodeId, Seq[(NodeId, Cardinality)])) : Boolean = {
+    data match {
+      case (nodeId, cards) =>
+        val max = cards.fold (-1,-1) (maxCardinality)
+        max._1 == nodeId
     }
   }
 
   /**
    * Input in the form (id, size)
    */
-  def maxCardinality(cardA: (NodeId, Int), cardB: (NodeId, Int)) = {
+  def maxCardinality( cardA: (NodeId, Cardinality),
+                      cardB: (NodeId, Cardinality)) = {
     if(cardA._2 > cardB._2)
       cardA
     else if(cardA._2 < cardB._2)
@@ -72,7 +84,7 @@ object BallDecomposition {
       cardB
   }
 
-  def removeCardinality(data: (NodeId, (Color, Int))) = {
+  def removeCardinality(data: (NodeId, (Color, Cardinality))) = {
     data match {
       case (id, (color, _)) => (id, color)
     }
@@ -104,7 +116,26 @@ object BallDecomposition {
   }
 
   /**
+   * Finds the nodes that has the maximum ball cardinality among all their
+   * ball neighbours, i.e. they are not dominated by anyone.
+   *
+   * @param balls
+   * @return
+   */
+  def computeCenters( balls: RDD[(NodeId, Ball)] ) = {
+
+    balls.map(removeSelfLoops)
+         .map(countCardinalities)
+         .flatMap(sendCardinalities)
+         .groupByKey() // (NodeId, Seq((NodeId, Cardinality)))
+         .filter(isCenter)
+  }
+
+  /**
    * Computes the color of each node.
+   *
+   * The color of a node `v` is the id of the node `u` with the biggest ball
+   * cardinality that contains `v` in its ball
    *
    * The input is an RDD that contains pairs of the form
    * (nodeID, ball), hence we can count cardinalities of each ball
@@ -145,6 +176,7 @@ object BallDecomposition {
                    colors: RDD[(NodeId, Color)]
                  ) = {
     val edges = graph.flatMap(toEdges)
+    edges.saveAsTextFile("edges")
     val sourceColored = edges.join(colors).map({
       case (src, (dst, color)) => (dst, color)
     })
@@ -152,7 +184,8 @@ object BallDecomposition {
       case (dst, (srcColor, dstColor)) => (srcColor, dstColor)
     })
 
-    dstColored.map(sortPair).distinct()
+//    dstColored.map(sortPair).distinct()
+    dstColored.distinct()
   }
 
   def finalize( reduced: RDD[(NodeId, NodeId)] ) = {
@@ -182,14 +215,19 @@ object BallDecomposition {
       val balls = computeBalls(graph, radius).cache()
       val ballsCount = balls.count()
       println("Number of balls: " + ballsCount)
+      balls.map({case (node, ball) => (node, ball.size)}).saveAsTextFile("balls")
 
       val colors = computeColors(balls)
       val colorsCount = colors.count()
       println("Number of colors: " + colorsCount)
+      colors.saveAsTextFile("colors")
+
+      val centers = colors.filter({case (node, col) => node == col}).count()
+      println("Centers: " + centers)
 
       val reduced = reduceGraph(graph, colors)
 
-      reduced.collect.foreach(println(_))
+      reduced.collect.sorted.foreach(println(_))
 
       finalize(reduced)
 
