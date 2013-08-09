@@ -5,7 +5,7 @@ import BallDecomposition._
 import spark.{RDD, SparkContext}
 import SparkContext._
 
-class BigGraphBallDecompositionSpec extends FlatSpec {
+class BigGraphBallDecompositionSpec extends FlatSpec with OneInstancePerTest {
 
   private val graphDataset = "src/test/resources/big/graph.adj"
   private val ballsDataset = "src/test/resources/big/balls_cardinalities"
@@ -15,14 +15,14 @@ class BigGraphBallDecompositionSpec extends FlatSpec {
   // init the environment
 
   System.clearProperty("spark.driver.port")
-  private val sc = new SparkContext("local", "Big dataset test")
+  val sc = new SparkContext("local", "Big dataset test")
 
-  private val graph = sc.textFile(graphDataset).map(convertInput).cache()
+  val graph = sc.textFile(graphDataset).map(convertInput).cache()
   val balls = sc.textFile(ballsDataset).map{ line =>
     val elems: Array[String] = line.split(" ")
     (elems(0).toInt, elems(1).toInt)
   }.cache()
-  private val colors = sc.textFile(colorsDataset).map{ line =>
+  val colors = sc.textFile(colorsDataset).map{ line =>
     val elems: Array[String] = line.split(" ")
     (elems(0).toInt, elems(1).toInt)
   }.cache()
@@ -56,5 +56,6 @@ class BigGraphBallDecompositionSpec extends FlatSpec {
         assert( expected === computed )
       }
   }
+
 
 }

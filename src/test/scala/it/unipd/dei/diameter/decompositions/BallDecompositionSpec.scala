@@ -181,6 +181,8 @@ class BallDecompositionSpec extends FlatSpec {
     val reduced = reduceGraph(graph, colors)
 //    reduced.collect().foreach(println(_))
     assert( reduced.collect() === Array((0,0)) )
+
+    sc.stop()
   }
 
   it should "contract a chain with a star to a chain" in {
@@ -205,6 +207,8 @@ class BallDecompositionSpec extends FlatSpec {
                                                (4,4),
                                                (4,0),
                                                (0,4)).sorted )
+
+    sc.stop()
   }
 
 }
