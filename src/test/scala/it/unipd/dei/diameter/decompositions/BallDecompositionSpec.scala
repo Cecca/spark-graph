@@ -82,6 +82,20 @@ class BallDecompositionSpec extends FlatSpec {
 
   }
 
+  "Function isCenter" should
+    "tell if a node has the maximum ball cardinality among it ball neighbours" in {
+
+    assert( isCenter( (0, Seq((15,32),(0,40),(3,21),(4,2),(6,9))) ) === true )
+    assert( isCenter( (0, Seq((15,32),(0,40),(3,41),(4,2),(6,9))) ) === false )
+
+  }
+
+  it should "break ties using IDs" in {
+
+    assert( isCenter( (0, Seq((15,40),(0,40),(3,21),(4,2),(6,9))) ) === false )
+    assert( isCenter( (15, Seq((15,40),(0,40),(3,21),(4,2),(6,9))) ) === true )
+  }
+
   "Function removeCardinality" should "remove the cardinality from the pair" in {
 
     assert( removeCardinality((0,(1,2))) == (0,1) )

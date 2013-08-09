@@ -60,6 +60,10 @@ object BallDecomposition {
 
   /**
    * Tells if the given node is a center, i.e. if it is not dominated by anyone.
+   *
+   * This method breaks ties using ids: the higher the ID, the higher the rank.
+   *
+   * @see maxCardinality
    */
   def isCenter(data: (NodeId, Seq[(NodeId, Cardinality)])) : Boolean = {
     data match {
