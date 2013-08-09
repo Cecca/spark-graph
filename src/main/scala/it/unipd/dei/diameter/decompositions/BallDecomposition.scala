@@ -128,8 +128,7 @@ object BallDecomposition {
    */
   def computeCenters( balls: RDD[(NodeId, Ball)] ) = {
 
-    balls.map(removeSelfLoops)
-         .map(countCardinalities)
+    balls.map(countCardinalities)
          .flatMap(sendCardinalities)
          .groupByKey() // (NodeId, Seq((NodeId, Cardinality)))
          .filter(isCenter)
@@ -221,13 +220,18 @@ object BallDecomposition {
       println("Number of balls: " + ballsCount)
       balls.map({case (node, ball) => (node, ball.size)}).saveAsTextFile("balls")
 
+      val ballCenters = computeCenters(balls)
+      val ballCentersCount = ballCenters.count()
+      println("Number of centers: " + ballCentersCount)
+      ballCenters.saveAsTextFile("centers")
+
       val colors = computeColors(balls)
       val colorsCount = colors.count()
       println("Number of colors: " + colorsCount)
       colors.saveAsTextFile("colors")
 
-      val centers = colors.filter({case (node, col) => node == col}).count()
-      println("Centers: " + centers)
+//      val centers = colors.filter({case (node, col) => node == col}).count()
+//      println("Centers: " + centers)
 
       val reduced = reduceGraph(graph, colors)
 
