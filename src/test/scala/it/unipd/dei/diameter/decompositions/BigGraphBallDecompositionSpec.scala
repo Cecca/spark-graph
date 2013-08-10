@@ -5,26 +5,37 @@ import BallDecomposition._
 import spark.{RDD, SparkContext}
 import SparkContext._
 
-class BigGraphBallDecompositionSpec extends FlatSpec {
+class BigGraphBallDecompositionSpec extends FlatSpec with BeforeAndAfter {
 
   private val graphDataset = "src/test/resources/big/graph.adj"
   private val ballsDataset = "src/test/resources/big/balls_cardinalities"
   private val colorsDataset = "src/test/resources/big/colors"
 
+  var sc : SparkContext = null
+  var graph : RDD[(NodeId,Neighbourhood)] = null
+  var balls : RDD[(NodeId,Cardinality)] = null
+  var colors : RDD[(NodeId,Color)] = null
+
   // --------------------------------------------------------------------------
   // init the environment
 
-  System.clearProperty("spark.driver.port")
-  val sc = new SparkContext("local", "Big dataset test")
+  before {
+    System.clearProperty("spark.driver.port")
+    sc = new SparkContext("local", "Big dataset test")
 
-  val graph = sc.textFile(graphDataset).map(convertInput)
-  val balls = sc.textFile(ballsDataset).map{ line =>
-    val elems: Array[String] = line.split(" ")
-    (elems(0).toInt, elems(1).toInt)
+    graph = sc.textFile(graphDataset).map(convertInput)
+    balls = sc.textFile(ballsDataset).map{ line =>
+      val elems: Array[String] = line.split(" ")
+      (elems(0).toInt, elems(1).toInt)
+    }
+    colors = sc.textFile(colorsDataset).map{ line =>
+      val elems: Array[String] = line.split(" ")
+      (elems(0).toInt, elems(1).toInt)
+    }
   }
-  val colors = sc.textFile(colorsDataset).map{ line =>
-    val elems: Array[String] = line.split(" ")
-    (elems(0).toInt, elems(1).toInt)
+
+  after {
+    sc.stop()
   }
 
   // --------------------------------------------------------------------------
