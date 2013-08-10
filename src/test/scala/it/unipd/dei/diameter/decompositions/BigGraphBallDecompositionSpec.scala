@@ -5,7 +5,7 @@ import BallDecomposition._
 import spark.{RDD, SparkContext}
 import SparkContext._
 
-class BigGraphBallDecompositionSpec extends FlatSpec with OneInstancePerTest {
+class BigGraphBallDecompositionSpec extends FlatSpec {
 
   private val graphDataset = "src/test/resources/big/graph.adj"
   private val ballsDataset = "src/test/resources/big/balls_cardinalities"
@@ -17,15 +17,15 @@ class BigGraphBallDecompositionSpec extends FlatSpec with OneInstancePerTest {
   System.clearProperty("spark.driver.port")
   val sc = new SparkContext("local", "Big dataset test")
 
-  val graph = sc.textFile(graphDataset).map(convertInput).cache()
+  val graph = sc.textFile(graphDataset).map(convertInput)
   val balls = sc.textFile(ballsDataset).map{ line =>
     val elems: Array[String] = line.split(" ")
     (elems(0).toInt, elems(1).toInt)
-  }.cache()
+  }
   val colors = sc.textFile(colorsDataset).map{ line =>
     val elems: Array[String] = line.split(" ")
     (elems(0).toInt, elems(1).toInt)
-  }.cache()
+  }
 
   // --------------------------------------------------------------------------
   // start tests
