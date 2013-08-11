@@ -11,6 +11,9 @@ object BallDecomposition {
   type Color = Int
   type Cardinality = Int
 
+  // --------------------------------------------------------------------------
+  // Map and reduce functions
+
   def convertInput(line: String) : (NodeId, Neighbourhood) = {
     val data = line.split(" +")
     (data.head.toInt, data.tail.map(_.toInt))
@@ -23,6 +26,40 @@ object BallDecomposition {
 
   def merge(ballA: Ball, ballB: Ball) =
     (ballA.distinct ++ ballB.distinct).distinct
+
+  def sendCardinalities(data: (NodeId, Ball))
+  : TraversableOnce[(NodeId, (NodeId, Cardinality))] = data match {
+    case (nodeId, ball) =>
+      val card = ball.size
+      val message = (nodeId, card)
+      ball.map((_, message))
+  }
+
+  def max(cardA: (NodeId, Cardinality), cardB: (NodeId, Cardinality))
+  : (NodeId, Cardinality) = (cardA, cardB) match {
+    case ((idA, cA), (idB, cB)) =>
+      if(cA > cB)
+        cardA
+      else if(cA < cB)
+        cardB
+      else if(idA > idB)
+        cardA
+      else
+        cardB
+  }
+
+  def isCenter(data: (NodeId, (NodeId, Cardinality)))
+  : Boolean = data match {
+    case((nodeId, (ballNeighId, card))) => nodeId == ballNeighId
+  }
+
+  def extractBallInformation(data: (NodeId, ((NodeId, Cardinality), Ball)))
+  : (NodeId, Ball) = data match {
+    case (nodeId, (_, ball)) => (nodeId, ball)
+  }
+
+  // --------------------------------------------------------------------------
+  // Functions on RDDs
 
   def computeBalls(graph: RDD[(NodeId,Neighbourhood)], radius: Int)
   : RDD[(NodeId, Ball)] = {
@@ -40,6 +77,18 @@ object BallDecomposition {
 
     return balls
   }
+
+  def computeCenters(balls: RDD[(NodeId,Ball)])
+  : RDD[(NodeId,Ball)] = {
+    balls.flatMap(sendCardinalities)
+         .reduceByKey(max)
+         .filter(isCenter)
+         .join(balls)
+         .map(extractBallInformation)
+  }
+
+  // --------------------------------------------------------------------------
+  // Main
 
   def main(args: Array[String]) = {
     val master = args(0)
