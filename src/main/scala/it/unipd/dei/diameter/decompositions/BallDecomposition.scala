@@ -101,6 +101,8 @@ object BallDecomposition {
 
     val balls = computeBalls(graph, radius)
 
+    val centers = computeCenters(balls)
+
   }
 
 }
