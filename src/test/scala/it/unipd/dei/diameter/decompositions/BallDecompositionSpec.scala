@@ -2,8 +2,6 @@ package it.unipd.dei.diameter.decompositions
 
 import org.scalatest._
 import BallDecomposition._
-import spark.{RDD, SparkContext}
-import SparkContext._
 
 class BallDecompositionSpec extends FlatSpec with GivenWhenThen {
 
