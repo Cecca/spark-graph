@@ -29,12 +29,16 @@ object BallDecomposition {
 
     var balls = graph.map(data => data) // simply copy the graph
 
-    for(i <- 1 until radius) {
-      val augmentedGraph = graph.join(balls)
-      balls = augmentedGraph.flatMap(sendBalls).reduceByKey(merge)
+    if ( radius == 1 ) {
+      balls = balls.map({ case (nodeId, neigh) => (nodeId, neigh :+ nodeId) })
+    } else {
+      for(i <- 1 until radius) {
+        val augmentedGraph = graph.join(balls)
+        balls = augmentedGraph.flatMap(sendBalls).reduceByKey(merge)
+      }
     }
 
-    balls
+    return balls
   }
 
   def main(args: Array[String]) = {
