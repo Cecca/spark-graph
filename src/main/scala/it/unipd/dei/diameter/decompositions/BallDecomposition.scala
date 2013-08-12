@@ -72,11 +72,15 @@ object BallDecomposition {
     case (nodeId, (_, ball)) => (nodeId, ball)
   }
 
-  def filterDominators(data: (NodeId, Seq[(NodeId,Cardinality)])) = data match {
+  def filterDominators(data: (NodeId, Seq[(NodeId,Cardinality)]))
+  : (NodeId, Dominators) = data match {
     case (nodeId, candidates) =>
-      candidates.find(_._1 == nodeId) map { nodeCardinality =>
-
+      val dominators = candidates.find(_._1 == nodeId) map { nodeCardinality =>
+        candidates.filter( gt ( nodeCardinality, _ ) )
+      } getOrElse {
+        throw new RuntimeException("Node not present in its own ball")
       }
+      (nodeId, dominators)
   }
 
   // --------------------------------------------------------------------------
@@ -100,12 +104,11 @@ object BallDecomposition {
   }
 
   def computeDominators(balls: RDD[(NodeId,Ball)])
-  : RDD[(NodeId,(Dominators,Dominated))]= {
-
+  : RDD[(NodeId,Dominators)]= {
+    // the dominators of each node, along with their cardinality
     balls.flatMap(sendCardinalities)
          .groupByKey()
          .map(filterDominators)
-    null
   }
 
   def computeCenters(balls: RDD[(NodeId,Ball)])
