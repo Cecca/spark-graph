@@ -26,7 +26,7 @@ class BigGraphBallDecompositionSpec extends FlatSpec with OneInstancePerTest
 
   val ballCardinalities = sc.textFile(ballsFile).map{line =>
     val data = line.split(" ")
-    (data(0).toInt, data(1).toInt + 1) // +1 to take into account the nodeId itself
+    (data(0).toInt, data(1).toInt)
   }
 
   val colors = sc.textFile(colorsFile).map{line =>
@@ -57,5 +57,18 @@ class BigGraphBallDecompositionSpec extends FlatSpec with OneInstancePerTest
 
   // --------------------------------------------------------------------------
   // Tests
+
+  "Function computeBalls" should
+    "compute balls of the correct cardinality" in {
+
+    val computed = computeBalls(graph,1).map({
+      case (nodeId, ball) => (nodeId, ball.size)
+    }).collect.sorted
+
+    ballCardinalities.collect().sorted.zip(computed).foreach {
+      case (expected, actual) => assert( expected === actual )
+    }
+
+  }
 
 }
