@@ -2,6 +2,7 @@ package it.unipd.dei.diameter.decompositions
 
 import spark.SparkContext._
 import spark.{RDD, SparkContext}
+import scala.collection.mutable
 
 object BallDecomposition {
 
@@ -65,11 +66,11 @@ object BallDecomposition {
   /**
    * Finds if the node is a center.
    */
-  def isCenter(data: (NodeId, (Dominators, Seq[(NodeId, Cardinality)] )))
+  def isCenter(data: (NodeId, (Seq[(NodeId, Cardinality)] , Ball) ))
   : Boolean = data match {
-    case((nodeId, (indirectDoms, directDoms))) =>
-      // finds direct dominators that are not dominated in turn
-      false
+    case((nodeId, (cards, ball))) =>
+      val m = cards.reduceLeft(max)
+      m._1 == nodeId
   }
 
   def extractBallInformation(data: (NodeId, ((NodeId, Cardinality), Ball)))
@@ -93,6 +94,15 @@ object BallDecomposition {
       ball.map { ballElem => (ballElem, dominators) }
   }
 
+  def countCardinality(data: (NodeId, Ball)) = data match {
+    case (nodeId, ball) => (nodeId, ball.size)
+  }
+
+  def colorDominated(data: (NodeId, (Seq[(NodeId, Cardinality)], Ball) ))
+  : TraversableOnce[(NodeId, Color)] = data match {
+    case (nodeId, (_, ball)) => ball.map{ ( _ , nodeId ) }
+  }
+
   // --------------------------------------------------------------------------
   // Functions on RDDs
 
@@ -113,6 +123,24 @@ object BallDecomposition {
     return balls
   }
 
+  def colorGraph( balls: RDD[(NodeId, Ball)] )
+  : RDD[(NodeId, Color)] = {
+
+    var uncolored = balls.flatMap(sendCardinalities)
+                         .groupByKey()
+                         .join(balls)
+
+    val colors: mutable.MutableList[RDD[(NodeId,Color)]] = mutable.MutableList()
+
+    while(uncolored.count() > 0) {
+      val centers = uncolored.filter(isCenter)
+      colors += centers.flatMap(colorDominated)
+      uncolored = uncolored.subtractByKey(centers)
+    }
+
+    colors.reduceLeft{ _ union _  }
+  }
+
   /**
    * Computes the dominators of each node, along with their cardinality
    */
@@ -126,14 +154,14 @@ object BallDecomposition {
                       dominators: RDD[(NodeId,Dominators)])
   : RDD[(NodeId,Ball)] = {
 
-      val ballCardinalities = balls.flatMap(sendCardinalities)
-                                   .groupByKey()
-
-      // send all dominators to ball neighbours
-      balls.join(dominators)
-           .flatMap(sendDominators)
-           .join(ballCardinalities)
-           .filter(isCenter)
+//      val ballCardinalities = balls.flatMap(sendCardinalities)
+//                                   .groupByKey()
+//
+//      // send all dominators to ball neighbours
+//      balls.join(dominators)
+//           .flatMap(sendDominators)
+//           .join(ballCardinalities)
+//           .filter(isCenter)
       null
     }
 
@@ -151,9 +179,7 @@ object BallDecomposition {
 
     val balls = computeBalls(graph, radius)
 
-    val dominators = computeDominators(balls)
-
-    val centers = computeCenters(balls, dominators)
+    val colors = colorGraph(balls)
 
   }
 
