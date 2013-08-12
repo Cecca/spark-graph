@@ -110,6 +110,10 @@ object BallDecomposition {
       mutable.MutableList()
 
     while(uncolored.count() > 0) {
+      // fixme: you should reduce remove the nodes that are already colored even
+      // from the balls, otherwise we have an infinite cycle.
+      // an alternative is to modify the isCenter function
+      println(uncolored.count())
       val centers = uncolored.filter(isCenter)
       colorsList += centers.flatMap(colorDominated)
       uncolored = uncolored.subtractByKey(centers)
