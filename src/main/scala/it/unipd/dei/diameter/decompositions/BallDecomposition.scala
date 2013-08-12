@@ -37,14 +37,26 @@ object BallDecomposition {
       ball.map((_, message))
   }
 
-  def max(cardA: (NodeId, Cardinality), cardB: (NodeId, Cardinality))
-  : (NodeId, Cardinality) = (cardA, cardB) match {
+  /**
+   * Tells if `cardA` is greater than `cardB`. Breaks ties on the cardinality
+   * using the ID.
+   */
+  def gt(cardA: (NodeId, Cardinality), cardB: (NodeId, Cardinality))
+  : Boolean = (cardA, cardB) match {
     case ((idA, cA), (idB, cB)) =>
       if(cA > cB)
-        cardA
+        true
       else if(cA < cB)
-        cardB
+        false
       else if(idA > idB)
+        true
+      else
+        false
+  }
+
+  def max(cardA: (NodeId, Cardinality), cardB: (NodeId, Cardinality))
+  : (NodeId, Cardinality) = {
+      if(gt(cardA, cardB))
         cardA
       else
         cardB
@@ -63,7 +75,7 @@ object BallDecomposition {
   def filterDominators(data: (NodeId, Seq[(NodeId,Cardinality)])) = data match {
     case (nodeId, candidates) =>
       candidates.find(_._1 == nodeId) map { nodeCardinality =>
-        
+
       }
   }
 
@@ -88,7 +100,7 @@ object BallDecomposition {
   }
 
   def computeDominators(balls: RDD[(NodeId,Ball)])
-  : RDD[NodeId,(Dominators,Dominated)]= {
+  : RDD[(NodeId,(Dominators,Dominated))]= {
 
     balls.flatMap(sendCardinalities)
          .groupByKey()

@@ -77,7 +77,7 @@ class BigGraphBallDecompositionSpec extends FlatSpec with OneInstancePerTest
       case (nodeId, (_, tuples)) => (nodeId, tuples)
     }.collect
 
-    cents.foreach{println(_)}
+//    cents.foreach{println(_)}
 
     cents.foreach { case (nodeId, tuples) =>
       if (tuples.size != 0) {
