@@ -73,43 +73,15 @@ class BigGraphBallDecompositionSpec extends FlatSpec with OneInstancePerTest
   }
 
   "Function isCenter" should "tell if a node is a center" ignore {
-    val cents = centers.map((_,())).join(centersGroups).map {
-      case (nodeId, (_, tuples)) => (nodeId, tuples)
-    }.collect
-
-//    cents.foreach{println(_)}
-
-    cents.foreach { case (nodeId, tuples) =>
-      if (tuples.size != 0) {
-        val m = tuples.reduceLeft(max(_,_))
-        assert( isCenter(nodeId, m) , "Fail on " + (nodeId, m) )
-      } else {
-        assert( false, "Empty tuple list" )
-      }
-    }
+    pending
   }
 
   it should "tell if a node is not a center" ignore {
-    val cents = centers.map((_,())).join(centersGroups).map {
-      case (nodeId, (_, tuples)) => (nodeId, tuples)
-    }
-    val nonCents = centersGroups.subtractByKey(cents).collect
-
-    nonCents.foreach { case (nodeId, tuples) =>
-      val m = tuples.reduceLeft(max(_,_))
-      assert( ! isCenter(nodeId, m) , "Fail on " + (nodeId, m) )
-    }
+    pending
   }
 
   "Function computeCenters" should "compute the correct centers" ignore {
-    val computed = computeCenters(computeBalls(graph,1)).map {
-      case (nodeId,_) => nodeId
-    }.collect.sorted
-
-    centers.collect.sorted.zip(computed).foreach {
-      case (expected, actual) => assert( expected === actual )
-    }
-
+    pending
   }
 
 }

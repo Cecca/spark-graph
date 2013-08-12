@@ -62,9 +62,14 @@ object BallDecomposition {
         cardB
   }
 
-  def isCenter(data: (NodeId, (NodeId, Cardinality)))
+  /**
+   * Finds if the node is a center.
+   */
+  def isCenter(data: (NodeId, (Dominators, Seq[(NodeId, Cardinality)] )))
   : Boolean = data match {
-    case((nodeId, (ballNeighId, card))) => nodeId == ballNeighId
+    case((nodeId, (indirectDoms, directDoms))) =>
+      // finds direct dominators that are not dominated in turn
+      false
   }
 
   def extractBallInformation(data: (NodeId, ((NodeId, Cardinality), Ball)))
@@ -81,6 +86,11 @@ object BallDecomposition {
         throw new RuntimeException("Node not present in its own ball")
       }
       (nodeId, dominators)
+  }
+
+  def sendDominators(data: (NodeId, (Ball, Dominators))) = data match {
+    case (nodeId, (ball, dominators)) =>
+      ball.map { ballElem => (ballElem, dominators) }
   }
 
   // --------------------------------------------------------------------------
@@ -112,13 +122,20 @@ object BallDecomposition {
          .groupByKey()
          .map(filterDominators)
 
-  def computeCenters(balls: RDD[(NodeId,Ball)])
-  : RDD[(NodeId,Ball)] =
-    balls.flatMap(sendCardinalities)
-         .reduceByKey(max)
-         .filter(isCenter)
-         .join(balls)
-         .map(extractBallInformation)
+  def computeCenters( balls: RDD[(NodeId,Ball)],
+                      dominators: RDD[(NodeId,Dominators)])
+  : RDD[(NodeId,Ball)] = {
+
+      val ballCardinalities = balls.flatMap(sendCardinalities)
+                                   .groupByKey()
+
+      // send all dominators to ball neighbours
+      balls.join(dominators)
+           .flatMap(sendDominators)
+           .join(ballCardinalities)
+           .filter(isCenter)
+      null
+    }
 
   // --------------------------------------------------------------------------
   // Main
@@ -136,7 +153,7 @@ object BallDecomposition {
 
     val dominators = computeDominators(balls)
 
-    val centers = computeCenters(balls)
+    val centers = computeCenters(balls, dominators)
 
   }
 
