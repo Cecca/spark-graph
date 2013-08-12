@@ -53,6 +53,7 @@ class BallDecompositionSpec extends FlatSpec with GivenWhenThen {
   "Function max" should "find the maximum between two cardinalities" in {
     assert( max((0,2),(2,1)) === (0,2) )
     assert( max((0,2),(2,15)) === (2,15) )
+    assert( max((-1,-1),(2,15)) === (2,15) )
   }
 
   it should "break ties using the node IDs" in {

@@ -4,6 +4,7 @@ import org.scalatest._
 import BallDecomposition._
 import spark.{RDD, SparkContext}
 import SparkContext._
+import scala.collection.mutable
 
 class BigGraphBallDecompositionSpec extends FlatSpec with OneInstancePerTest
                                                      with BeforeAndAfter {
@@ -40,11 +41,11 @@ class BigGraphBallDecompositionSpec extends FlatSpec with OneInstancePerTest
     val data = line.split(" +")
     val nodeId = data.head.toInt
     val tData = data.tail
-    var tuples: List[(Int,Int)] = List() // todo: use a mutable list
-    for(i <- 1 until tuples.size/2 by 2) {
-      tuples = tuples :+ (tData(i).toInt, tData(i+1).toInt)
+    var tuples: mutable.MutableList[(Int,Int)] = mutable.MutableList()
+    for(i <- 0 to tData.size/2 by 2) {
+      tuples += ( (tData(i).toInt, tData(i+1).toInt) )
     }
-    (nodeId,tuples)
+    (nodeId,tuples.toList)
   }
 
   // --------------------------------------------------------------------------
@@ -66,6 +67,38 @@ class BigGraphBallDecompositionSpec extends FlatSpec with OneInstancePerTest
     }).collect.sorted
 
     ballCardinalities.collect().sorted.zip(computed).foreach {
+      case (expected, actual) => assert( expected === actual )
+    }
+
+  }
+
+  "Function isCenter" should "tell if a node is a center" in {
+    val cents = centers.map((_,())).join(centersGroups).map {
+      case (nodeId, (_, tuples)) => (nodeId, tuples)
+    }.collect
+
+    cents.foreach{println(_)}
+
+    cents.foreach { case (nodeId, tuples) =>
+      if (tuples.size != 0) {
+        val m = tuples.reduceLeft(max(_,_))
+        assert( isCenter(nodeId, m) , "Fail on " + (nodeId, m) )
+      } else {
+        assert( false, "Empty tuple list" )
+      }
+    }
+  }
+
+  it should "tell if a node is not a center" in {
+    pending
+  }
+
+  "Function computeCenters" should "compute the correct centers" ignore {
+    val computed = computeCenters(computeBalls(graph,1)).map {
+      case (nodeId,_) => nodeId
+    }.collect.sorted
+
+    centers.collect.sorted.zip(computed).foreach {
       case (expected, actual) => assert( expected === actual )
     }
 
