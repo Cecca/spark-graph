@@ -79,6 +79,27 @@ object BallDecomposition {
       ball.map{ ( _ , (nodeId, m._2) ) }
   }
 
+  def swap(data: (NodeId, (Seq[(NodeId, Cardinality)], Ball) ))
+  : TraversableOnce[(NodeId, NodeId)] = data match {
+    case (nodeId, (_, ball)) =>
+      ball.map{ (_, nodeId) }
+  }
+
+  def filterColored( data: ( NodeId, ( Option[Seq[NodeId]],
+                                       (Seq[(NodeId, Cardinality)], Ball))) )
+  : (NodeId, (Seq[(NodeId, Cardinality)], Ball) ) = data match {
+    case (nodeId, (toRemove, (cardinalities, ball))) =>
+      toRemove map { toRemoveElems =>
+        val newBall = ball filterNot { toRemoveElems.contains(_) }
+        val newCardinalities = cardinalities filterNot { case (id, card) =>
+          toRemoveElems.contains(id)
+        }
+        (nodeId, (newCardinalities, newBall))
+      } getOrElse {
+        (nodeId, (cardinalities, ball))
+      }
+  }
+
   // --------------------------------------------------------------------------
   // Functions on RDDs
 
@@ -116,6 +137,13 @@ object BallDecomposition {
       println(uncolored.count())
       val centers = uncolored.filter(isCenter)
       colorsList += centers.flatMap(colorDominated)
+
+      centers.flatMap(swap)
+             .groupByKey()
+             .rightOuterJoin(uncolored)
+             .map(filterColored)
+
+
       uncolored = uncolored.subtractByKey(centers)
     }
 
