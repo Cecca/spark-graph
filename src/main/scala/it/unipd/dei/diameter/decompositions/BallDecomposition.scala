@@ -9,8 +9,6 @@ object BallDecomposition {
   type NodeId = Int
   type Neighbourhood = Seq[NodeId]
   type Ball = Seq[NodeId]
-  type Dominators = Seq[(NodeId,Cardinality)]
-  type Dominated = Seq[NodeId]
   type Color = Int
   type Cardinality = Int
 
@@ -73,31 +71,6 @@ object BallDecomposition {
       m._1 == nodeId
   }
 
-  def extractBallInformation(data: (NodeId, ((NodeId, Cardinality), Ball)))
-  : (NodeId, Ball) = data match {
-    case (nodeId, (_, ball)) => (nodeId, ball)
-  }
-
-  def filterDominators(data: (NodeId, Seq[(NodeId,Cardinality)]))
-  : (NodeId, Dominators) = data match {
-    case (nodeId, candidates) =>
-      val dominators = candidates.find(_._1 == nodeId) map { nodeCardinality =>
-        candidates.filter( gt ( nodeCardinality, _ ) )
-      } getOrElse {
-        throw new RuntimeException("Node not present in its own ball")
-      }
-      (nodeId, dominators)
-  }
-
-  def sendDominators(data: (NodeId, (Ball, Dominators))) = data match {
-    case (nodeId, (ball, dominators)) =>
-      ball.map { ballElem => (ballElem, dominators) }
-  }
-
-  def countCardinality(data: (NodeId, Ball)) = data match {
-    case (nodeId, ball) => (nodeId, ball.size)
-  }
-
   def colorDominated(data: (NodeId, (Seq[(NodeId, Cardinality)], Ball) ))
   : TraversableOnce[(NodeId, Color)] = data match {
     case (nodeId, (_, ball)) => ball.map{ ( _ , nodeId ) }
@@ -140,30 +113,6 @@ object BallDecomposition {
 
     colors.reduceLeft{ _ union _  }
   }
-
-  /**
-   * Computes the dominators of each node, along with their cardinality
-   */
-  def computeDominators(balls: RDD[(NodeId,Ball)])
-  : RDD[(NodeId,Dominators)]=
-    balls.flatMap(sendCardinalities)
-         .groupByKey()
-         .map(filterDominators)
-
-  def computeCenters( balls: RDD[(NodeId,Ball)],
-                      dominators: RDD[(NodeId,Dominators)])
-  : RDD[(NodeId,Ball)] = {
-
-//      val ballCardinalities = balls.flatMap(sendCardinalities)
-//                                   .groupByKey()
-//
-//      // send all dominators to ball neighbours
-//      balls.join(dominators)
-//           .flatMap(sendDominators)
-//           .join(ballCardinalities)
-//           .filter(isCenter)
-      null
-    }
 
   // --------------------------------------------------------------------------
   // Main
