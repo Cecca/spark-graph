@@ -103,22 +103,22 @@ object BallDecomposition {
     return balls
   }
 
+  /**
+   * Computes the dominators of each node, along with their cardinality
+   */
   def computeDominators(balls: RDD[(NodeId,Ball)])
-  : RDD[(NodeId,Dominators)]= {
-    // the dominators of each node, along with their cardinality
+  : RDD[(NodeId,Dominators)]=
     balls.flatMap(sendCardinalities)
          .groupByKey()
          .map(filterDominators)
-  }
 
   def computeCenters(balls: RDD[(NodeId,Ball)])
-  : RDD[(NodeId,Ball)] = {
+  : RDD[(NodeId,Ball)] =
     balls.flatMap(sendCardinalities)
          .reduceByKey(max)
          .filter(isCenter)
          .join(balls)
          .map(extractBallInformation)
-  }
 
   // --------------------------------------------------------------------------
   // Main
@@ -133,6 +133,8 @@ object BallDecomposition {
     val graph = sc.textFile(input).map(convertInput).cache()
 
     val balls = computeBalls(graph, radius)
+
+    val dominators = computeDominators(balls)
 
     val centers = computeCenters(balls)
 

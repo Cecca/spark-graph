@@ -72,7 +72,7 @@ class BigGraphBallDecompositionSpec extends FlatSpec with OneInstancePerTest
 
   }
 
-  "Function isCenter" should "tell if a node is a center" in {
+  "Function isCenter" should "tell if a node is a center" ignore {
     val cents = centers.map((_,())).join(centersGroups).map {
       case (nodeId, (_, tuples)) => (nodeId, tuples)
     }.collect
@@ -89,7 +89,7 @@ class BigGraphBallDecompositionSpec extends FlatSpec with OneInstancePerTest
     }
   }
 
-  it should "tell if a node is not a center" in {
+  it should "tell if a node is not a center" ignore {
     val cents = centers.map((_,())).join(centersGroups).map {
       case (nodeId, (_, tuples)) => (nodeId, tuples)
     }
