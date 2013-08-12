@@ -11,6 +11,7 @@ object BallDecomposition {
   type Ball = Seq[NodeId]
   type Color = Int
   type Cardinality = Int
+  type CardAList = Seq[(NodeId, Cardinality)]
 
   // --------------------------------------------------------------------------
   // Map and reduce functions
@@ -64,14 +65,14 @@ object BallDecomposition {
   /**
    * Finds if the node is a center.
    */
-  def isCenter(data: (NodeId, (Seq[(NodeId, Cardinality)] , Ball) ))
+  def isCenter(data: (NodeId, (CardAList , Ball) ))
   : Boolean = data match {
     case((nodeId, (cards, ball))) =>
       val m = cards.reduceLeft(max)
       m._1 == nodeId
   }
 
-  def colorDominated(data: (NodeId, (Seq[(NodeId, Cardinality)], Ball) ))
+  def colorDominated(data: (NodeId, (CardAList, Ball) ))
   : TraversableOnce[(NodeId, (Color, Cardinality))] = data match {
     case (nodeId, (cardinalities, ball)) =>
       // fixme: performance: reuse result from previous computation
@@ -79,15 +80,15 @@ object BallDecomposition {
       ball.map{ ( _ , (nodeId, m._2) ) }
   }
 
-  def swap(data: (NodeId, (Seq[(NodeId, Cardinality)], Ball) ))
+  def swap(data: (NodeId, (CardAList, Ball) ))
   : TraversableOnce[(NodeId, NodeId)] = data match {
     case (nodeId, (_, ball)) =>
       ball.map{ (_, nodeId) }
   }
 
   def filterColored( data: ( NodeId, ( Option[Seq[NodeId]],
-                                       (Seq[(NodeId, Cardinality)], Ball))) )
-  : (NodeId, (Seq[(NodeId, Cardinality)], Ball) ) = data match {
+                                       (CardAList, Ball))) )
+  : (NodeId, (CardAList, Ball) ) = data match {
     case (nodeId, (toRemove, (cardinalities, ball))) =>
       toRemove map { toRemoveElems =>
         val newBall = ball filterNot { toRemoveElems.contains(_) }
