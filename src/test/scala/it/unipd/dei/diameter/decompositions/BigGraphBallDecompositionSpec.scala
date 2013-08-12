@@ -84,4 +84,14 @@ class BigGraphBallDecompositionSpec extends FlatSpec with OneInstancePerTest
     pending
   }
 
+  "Function colorGraph" should "assign the correct colors to the graph" in {
+    val balls = computeBalls(graph, 1)
+    val actualColors = colorGraph(balls)
+
+    colors.collect.sorted.zip(actualColors.collect.sorted).foreach { _ match {
+        case (expected, actual) => assert( expected === actual )
+      }
+    }
+  }
+
 }

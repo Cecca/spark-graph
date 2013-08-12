@@ -64,13 +64,18 @@ class BallDecompositionSpec extends FlatSpec with GivenWhenThen {
   }
 
   "Function isCenter" should "tell if the node is a ball center" in {
-    pending
-//    When("a node ID is equals to the biggest ball center ID nearby")
-//    Then("the node is a center")
-//    assert( isCenter((0,(0,3))) )
-//    When("a node ID is not equals to the biggest ball center ID nearby")
-//    Then("the node is not a center")
-//    assert( ! isCenter((0,(4,3))) )
+    val cardinalities = Seq((0,5),(1,1),(2,1),(3,1),(4,1))
+    val ball = Seq(0,1,2,3,4)
+
+    assert( isCenter((0, (cardinalities, ball))) )
+  }
+
+  it should "tell if a node is not a ball center" in {
+    val cardinalities = Seq((0,5),(1,1),(2,1),(3,6),(4,1))
+    val ball = Seq(0,1,2,3,4)
+
+    assert( ! isCenter((0, (cardinalities, ball))) )
+
   }
 
   "Function colorDominated" should "return all the dominated nodes, colored" in {
