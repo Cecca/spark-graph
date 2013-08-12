@@ -136,15 +136,17 @@ object BallDecomposition {
       // an alternative is to modify the isCenter function
       println(uncolored.count())
       val centers = uncolored.filter(isCenter)
-      colorsList += centers.flatMap(colorDominated)
-
-      centers.flatMap(swap)
-             .groupByKey()
-             .rightOuterJoin(uncolored)
-             .map(filterColored)
-
+      val newColors = centers.flatMap(colorDominated)
+      colorsList += newColors
 
       uncolored = uncolored.subtractByKey(centers)
+                           .subtractByKey(newColors)
+
+      uncolored = centers.flatMap(swap) // now we have al the colored nodes
+                         .groupByKey()
+                         .rightOuterJoin(uncolored)
+                         .map(filterColored)
+
     }
 
     val colors = colorsList.reduceLeft{ _ union _  }
