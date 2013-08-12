@@ -72,8 +72,11 @@ object BallDecomposition {
   }
 
   def colorDominated(data: (NodeId, (Seq[(NodeId, Cardinality)], Ball) ))
-  : TraversableOnce[(NodeId, Color)] = data match {
-    case (nodeId, (_, ball)) => ball.map{ ( _ , nodeId ) }
+  : TraversableOnce[(NodeId, (Color, Cardinality))] = data match {
+    case (nodeId, (cardinalities, ball)) =>
+      // fixme: performance: reuse result from previous computation
+      val m = cardinalities.reduce(max)
+      ball.map{ ( _ , (nodeId, m._2) ) }
   }
 
   // --------------------------------------------------------------------------
@@ -103,15 +106,20 @@ object BallDecomposition {
                          .groupByKey()
                          .join(balls)
 
-    val colors: mutable.MutableList[RDD[(NodeId,Color)]] = mutable.MutableList()
+    val colorsList: mutable.MutableList[RDD[(NodeId,(Color,Cardinality))]] =
+      mutable.MutableList()
 
     while(uncolored.count() > 0) {
       val centers = uncolored.filter(isCenter)
-      colors += centers.flatMap(colorDominated)
+      colorsList += centers.flatMap(colorDominated)
       uncolored = uncolored.subtractByKey(centers)
     }
 
-    colors.reduceLeft{ _ union _  }
+    val colors = colorsList.reduceLeft{ _ union _  }
+
+    colors.reduceByKey(max).map { case (nodeId, (color, card)) =>
+      (nodeId, color)
+    }
   }
 
   // --------------------------------------------------------------------------

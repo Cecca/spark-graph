@@ -73,6 +73,22 @@ class BallDecompositionSpec extends FlatSpec with GivenWhenThen {
 //    assert( ! isCenter((0,(4,3))) )
   }
 
+  "Function colorDominated" should "return all the dominated nodes, colored" in {
+    val ball = Seq(0,1,2,3,4)
+    val cardinalities = Seq((0,5),(1,1),(2,1),(3,1),(4,1))
+    val expected = Seq(
+      ((0,(0,5))),
+      ((1,(0,5))),
+      ((2,(0,5))),
+      ((3,(0,5))),
+      ((4,(0,5)))
+    )
+
+    val actual = colorDominated((0, (cardinalities, ball))).toSeq.sorted
+
+    assert( actual === expected )
+  }
+
 }
 
 
