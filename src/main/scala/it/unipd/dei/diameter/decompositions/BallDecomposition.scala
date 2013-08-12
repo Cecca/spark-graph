@@ -121,6 +121,20 @@ object BallDecomposition {
     return balls
   }
 
+  def pruneColored( centers: RDD[(NodeId, (CardAList, Ball))],
+                    uncolored: RDD[(NodeId, (CardAList, Ball))],
+                    newColors: RDD[(NodeId, (Color,Cardinality))])
+  : RDD[(NodeId, (CardAList, Ball))] = {
+
+    val sub = uncolored.subtractByKey(centers)
+                       .subtractByKey(newColors)
+
+    centers.flatMap(swap) // now we have al the colored nodes
+           .groupByKey()
+           .rightOuterJoin(sub)
+           .map(filterColored)
+  }
+
   def colorGraph( balls: RDD[(NodeId, Ball)] )
   : RDD[(NodeId, Color)] = {
 
@@ -137,13 +151,7 @@ object BallDecomposition {
       val newColors = centers.flatMap(colorDominated)
       colorsList += newColors
 
-      uncolored = uncolored.subtractByKey(centers)
-                           .subtractByKey(newColors)
-
-      uncolored = centers.flatMap(swap) // now we have al the colored nodes
-                         .groupByKey()
-                         .rightOuterJoin(uncolored)
-                         .map(filterColored)
+      uncolored = pruneColored(centers, uncolored, newColors)
 
     }
 
