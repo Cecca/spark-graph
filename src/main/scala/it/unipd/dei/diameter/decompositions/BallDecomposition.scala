@@ -8,6 +8,8 @@ object BallDecomposition {
   type NodeId = Int
   type Neighbourhood = Seq[NodeId]
   type Ball = Seq[NodeId]
+  type Dominators = Seq[(NodeId,Cardinality)]
+  type Dominated = Seq[NodeId]
   type Color = Int
   type Cardinality = Int
 
@@ -58,6 +60,13 @@ object BallDecomposition {
     case (nodeId, (_, ball)) => (nodeId, ball)
   }
 
+  def filterDominators(data: (NodeId, Seq[(NodeId,Cardinality)])) = data match {
+    case (nodeId, candidates) =>
+      candidates.find(_._1 == nodeId) map { nodeCardinality =>
+        
+      }
+  }
+
   // --------------------------------------------------------------------------
   // Functions on RDDs
 
@@ -76,6 +85,15 @@ object BallDecomposition {
     }
 
     return balls
+  }
+
+  def computeDominators(balls: RDD[(NodeId,Ball)])
+  : RDD[NodeId,(Dominators,Dominated)]= {
+
+    balls.flatMap(sendCardinalities)
+         .groupByKey()
+         .map(filterDominators)
+    null
   }
 
   def computeCenters(balls: RDD[(NodeId,Ball)])
