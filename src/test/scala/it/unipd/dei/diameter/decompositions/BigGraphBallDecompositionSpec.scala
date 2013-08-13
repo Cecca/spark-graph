@@ -2,7 +2,7 @@ package it.unipd.dei.diameter.decompositions
 
 import org.scalatest._
 import BallDecomposition._
-import spark.{RDD, SparkContext}
+import spark.RDD
 import scala.collection.mutable
 import it.unipd.dei.diameter.LocalSparkContext
 
