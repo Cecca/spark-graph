@@ -4,7 +4,8 @@ import org.scalatest._
 import BallDecomposition._
 import spark.RDD
 import scala.collection.mutable
-import it.unipd.dei.LocalSparkContext
+import it.unipd.dei.graph._
+import it.unipd.dei.graph.LocalSparkContext
 
 class BigGraphBallDecompositionSpec extends FlatSpec with BeforeAndAfter
                                                      with LocalSparkContext {

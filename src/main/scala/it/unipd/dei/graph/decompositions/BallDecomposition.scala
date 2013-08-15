@@ -3,16 +3,9 @@ package it.unipd.dei.decompositions
 import spark.SparkContext._
 import spark.{RDD, SparkContext}
 import scala.collection.mutable
-import it.unipd.dei.Timed
+import it.unipd.dei.graph._
 
 object BallDecomposition extends Timed {
-
-  type NodeId = Int
-  type Neighbourhood = Seq[NodeId]
-  type Ball = Seq[NodeId]
-  type Color = Int
-  type Cardinality = Int
-  type CardAList = Seq[(NodeId, Cardinality)]
 
   // --------------------------------------------------------------------------
   // Map and reduce functions
