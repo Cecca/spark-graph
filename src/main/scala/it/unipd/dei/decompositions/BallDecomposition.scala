@@ -3,8 +3,9 @@ package it.unipd.dei.decompositions
 import spark.SparkContext._
 import spark.{RDD, SparkContext}
 import scala.collection.mutable
+import it.unipd.dei.Timed
 
-object BallDecomposition {
+object BallDecomposition extends Timed {
 
   type NodeId = Int
   type Neighbourhood = Seq[NodeId]

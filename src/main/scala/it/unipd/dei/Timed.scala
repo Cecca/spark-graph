@@ -1,6 +1,6 @@
 package it.unipd.dei
 
-object Timer {
+trait Timed {
 
   def timed[R](name: String)(f: => R): R = {
     val start = System.currentTimeMillis()
