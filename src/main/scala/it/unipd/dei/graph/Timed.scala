@@ -1,4 +1,4 @@
-package it.unipd.dei
+package it.unipd.dei.graph
 
 trait Timed {
 

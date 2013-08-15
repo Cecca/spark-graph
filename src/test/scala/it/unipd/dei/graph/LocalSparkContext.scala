@@ -1,4 +1,4 @@
-package it.unipd.dei
+package it.unipd.dei.graph
 
 import org.scalatest.{BeforeAndAfterEach, Suite}
 import spark.SparkContext
