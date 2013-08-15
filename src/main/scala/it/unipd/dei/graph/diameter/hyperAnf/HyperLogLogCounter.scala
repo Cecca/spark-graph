@@ -1,8 +1,11 @@
 package it.unipd.dei.graph.diameter.hyperAnf
 
 import scala.math.{log,max}
+import HyperLogLogCounter.Register
 
 object HyperLogLogCounter {
+
+  type Register = Byte
 
   val sentinelMask = 1L << ( 1 << 8 ) - 2
 
@@ -46,8 +49,6 @@ object HyperLogLogCounter {
 
 class HyperLogLogCounter(log2m: Int, seed: Long) {
 
-  type Register = Byte
-
   val m: Int = 1 << log2m
 
   private val registers: Array[Register] = new Array(m)
@@ -82,7 +83,7 @@ class HyperLogLogCounter(log2m: Int, seed: Long) {
   }
 
   def add ( elem: Int ) = {
-    
+
     import HyperLogLogCounter._
     import java.lang.Long.numberOfTrailingZeros
 
@@ -97,6 +98,18 @@ class HyperLogLogCounter(log2m: Int, seed: Long) {
 
     registers.update( j, max(registers(j), r).toByte )
 
+  }
+
+  // TODO this is an operation to optimize
+  def union ( other: HyperLogLogCounter ): HyperLogLogCounter = {
+    val newCounter = new HyperLogLogCounter(log2m, seed)
+
+    for( i <- 0 until registers.size ) {
+      newCounter.registers.update(
+        i, max(this.registers(i), other.registers(i)).toByte )
+    }
+
+    newCounter
   }
 
 }
