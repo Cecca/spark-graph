@@ -1,4 +1,4 @@
-package it.unipd.dei.diameter.decompositions
+package it.unipd.dei.decompositions
 
 import org.scalatest._
 import BallDecomposition._

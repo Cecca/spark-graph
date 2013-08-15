@@ -1,10 +1,10 @@
-package it.unipd.dei.diameter.decompositions
+package it.unipd.dei.decompositions
 
 import org.scalatest._
 import BallDecomposition._
 import spark.RDD
 import scala.collection.mutable
-import it.unipd.dei.diameter.LocalSparkContext
+import it.unipd.dei.LocalSparkContext
 
 class BigGraphBallDecompositionSpec extends FlatSpec with BeforeAndAfter
                                                      with LocalSparkContext {

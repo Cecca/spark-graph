@@ -1,4 +1,4 @@
-package it.unipd.dei.diameter.decompositions
+package it.unipd.dei.decompositions
 
 import spark.SparkContext._
 import spark.{RDD, SparkContext}

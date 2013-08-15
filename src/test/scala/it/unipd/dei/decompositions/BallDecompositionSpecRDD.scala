@@ -1,9 +1,8 @@
-package it.unipd.dei.diameter.decompositions
+package it.unipd.dei.decompositions
 
-import org.scalatest.{BeforeAndAfter, OneInstancePerTest, FlatSpec}
-import spark.SparkContext
-import it.unipd.dei.diameter.decompositions.BallDecomposition._
-import it.unipd.dei.diameter.LocalSparkContext
+import org.scalatest.FlatSpec
+import it.unipd.dei.decompositions.BallDecomposition._
+import it.unipd.dei.LocalSparkContext
 
 class BallDecompositionSpecRDD extends FlatSpec with LocalSparkContext {
 

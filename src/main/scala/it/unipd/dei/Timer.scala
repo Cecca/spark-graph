@@ -1,4 +1,4 @@
-package it.unipd.dei.diameter
+package it.unipd.dei
 
 object Timer {
 

@@ -1,4 +1,4 @@
-package it.unipd.dei.diameter
+package it.unipd.dei
 
 import org.scalatest.{BeforeAndAfterEach, Suite}
 import spark.SparkContext
