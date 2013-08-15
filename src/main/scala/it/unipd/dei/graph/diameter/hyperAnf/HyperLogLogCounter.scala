@@ -112,4 +112,8 @@ class HyperLogLogCounter(log2m: Int, seed: Long) {
     newCounter
   }
 
+  def :+ ( elem: Int ) = add(elem)
+
+  def + ( other: HyperLogLogCounter ) = union(other)
+
 }
