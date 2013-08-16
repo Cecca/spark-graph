@@ -21,11 +21,13 @@ object HyperAnf extends TextInputConverter {
 
     val sc = new SparkContext(master, "HyperANF")
 
+    println("Computing neighbourhood function")
     val nf = hyperAnf(sc, input, numBits, maxIter)
     nf.zipWithIndex.foreach { case (nfElem, idx) =>
       println("N(%d) = %f".format(idx, nfElem))
     }
 
+    println("Computing effective diameter")
     val effDiam = effectiveDiameter(nf)
 
     println("Effective diameter = %f".format(effDiam))
@@ -60,6 +62,7 @@ object HyperAnf extends TextInputConverter {
       new mutable.MutableList[Double]
 
     while(changed != 0 && iter < maxIter) {
+      println("Iteration %d".format(iter))
       val changedNodes = sc.accumulator(0)
       val neighFunc: Accumulator[Double] = sc.accumulator(0)
 
@@ -75,6 +78,9 @@ object HyperAnf extends TextInputConverter {
 
                (nodeId, newCounter)
             }
+
+      val cnt = counters.count()
+      println("Counters " + cnt)
 
       neighbourhoodFunction += neighFunc.value
 
