@@ -1,0 +1,82 @@
+package it.unipd.dei.graph.diameter.hyperAnf
+
+import spark.{Accumulator, RDD, SparkContext}
+import spark.SparkContext._
+import it.unipd.dei.graph.{TextInputConverter,NodeId,Neighbourhood}
+import scala.collection.mutable
+
+/**
+ * Implementation of HyperANF with spark
+ */
+object HyperAnf extends TextInputConverter {
+
+  type NeighbourhoodFunction = Seq[Double]
+
+  def main(args: Array[String]) = {
+    val master = args(0)
+    val input = args(1)
+    val numBits = args(2).toInt
+    val maxIter = args(3).toInt
+
+    val sc = new SparkContext(master, "HyperANF")
+
+    hyperAnf(sc, input, numBits, maxIter)
+
+  }
+
+  def sendCounters(data: (NodeId, (Neighbourhood, HyperLogLogCounter)))
+  : TraversableOnce[(NodeId, HyperLogLogCounter)] = data match {
+    case (nodeId, (neighbourhood, counter)) =>
+      neighbourhood.map((_, counter)) :+ (nodeId, counter)
+  }
+
+  def hyperAnf(sc: SparkContext, input: String, numBits: Int, maxIter: Int)
+  : NeighbourhoodFunction = {
+
+    val graph: RDD[(NodeId, Neighbourhood)] =
+      sc.textFile(input).map(convertAdj).cache()
+
+    val bcastNumBits = sc.broadcast(numBits)
+    val bcastSeed = sc.broadcast(System.nanoTime())
+
+    // init counters
+    var counters: RDD[(NodeId, HyperLogLogCounter)] =
+      graph map { case (nodeId, _) =>
+        val counter = new HyperLogLogCounter(bcastNumBits.value, bcastSeed.value)
+        counter.add(nodeId)
+        (nodeId, counter)
+      }
+
+    var changed = -1
+    var iter = 0
+    val neighbourhoodFunction: mutable.MutableList[Double] =
+      new mutable.MutableList[Double]
+
+    while(changed != 0 && iter < maxIter) {
+      val changedNodes = sc.accumulator(0)
+      val neighFunc: Accumulator[Double] = sc.accumulator(0)
+
+      counters = graph
+            .join(counters)
+            .flatMap(sendCounters)
+            .reduceByKey(_ union _)
+            .join(counters) // TODO maybe we can avoid this join
+            .map { case (nodeId, (newCounter, oldCounter)) =>
+               if ( newCounter != oldCounter )
+                 changedNodes += 1
+               neighFunc += newCounter.size
+
+               (nodeId, newCounter)
+            }
+
+      neighbourhoodFunction += neighFunc.value
+
+      changed = changedNodes.value
+      iter += 1
+    }
+
+    neighbourhoodFunction.toSeq
+
+  }
+
+}

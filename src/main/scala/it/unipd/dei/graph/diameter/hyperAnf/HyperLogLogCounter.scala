@@ -65,7 +65,7 @@ class HyperLogLogCounter(log2m: Int, seed: Long) {
 
   def size: Double = {
     var zeroes = 0
-    var denominator = 0
+    var denominator: Double = 0
 
     for (reg <- registers) {
       if (reg == 0)
@@ -115,5 +115,14 @@ class HyperLogLogCounter(log2m: Int, seed: Long) {
   def :+ ( elem: Int ) = add(elem)
 
   def + ( other: HyperLogLogCounter ) = union(other)
+
+  override def equals (that: Any) = that match {
+    case other: HyperLogLogCounter =>
+      this.registers.zip(other.registers).map { case (a,b) =>
+        a == b
+      }.reduceLeft(_ && _)
+
+    case _ => false
+  }
 
 }
