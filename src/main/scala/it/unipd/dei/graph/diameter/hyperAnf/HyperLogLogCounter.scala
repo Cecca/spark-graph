@@ -44,14 +44,13 @@ object HyperLogLogCounter {
     c
   }
 
-
 }
 
 class HyperLogLogCounter(log2m: Int, seed: Long) extends Serializable {
 
   val m: Int = 1 << log2m
 
-  private val registers: Array[Register] = new Array(m)
+  val registers: Array[Register] = new Array(m)
 
   val alpha_mm = log2m match {
     case 0 | 1 | 2 | 3 =>
