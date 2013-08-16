@@ -79,8 +79,8 @@ object HyperAnf extends TextInputConverter {
                (nodeId, newCounter)
             }
 
-      val cnt = counters.count()
-      println("Counters " + cnt)
+      // force evaluation
+      counters.count()
 
       neighbourhoodFunction += neighFunc.value
 

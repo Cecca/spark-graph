@@ -47,7 +47,7 @@ object HyperLogLogCounter {
 
 }
 
-class HyperLogLogCounter(log2m: Int, seed: Long) {
+class HyperLogLogCounter(log2m: Int, seed: Long) extends Serializable {
 
   val m: Int = 1 << log2m
 
