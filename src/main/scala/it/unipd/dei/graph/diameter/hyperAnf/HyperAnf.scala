@@ -4,6 +4,7 @@ import spark.{Accumulator, RDD, SparkContext}
 import spark.SparkContext._
 import it.unipd.dei.graph.{TextInputConverter,NodeId,Neighbourhood}
 import scala.collection.mutable
+import it.unipd.dei.graph.diameter.{Confidence,EffectiveDiameter}
 
 /**
  * Implementation of HyperANF with spark
@@ -20,8 +21,14 @@ object HyperAnf extends TextInputConverter {
 
     val sc = new SparkContext(master, "HyperANF")
 
-    hyperAnf(sc, input, numBits, maxIter)
+    val nf = hyperAnf(sc, input, numBits, maxIter)
+    nf.zipWithIndex.foreach { case (nfElem, idx) =>
+      println("N(%d) = %f".format(idx, nfElem))
+    }
 
+    val effDiam = effectiveDiameter(nf)
+
+    println("Effective diameter = %f".format(effDiam))
   }
 
   def sendCounters(data: (NodeId, (Neighbourhood, HyperLogLogCounter)))
@@ -77,6 +84,23 @@ object HyperAnf extends TextInputConverter {
 
     neighbourhoodFunction.toSeq
 
+  }
+
+  def effectiveDiameter(nf: NeighbourhoodFunction, alpha: Double = 0.9)
+  : Double = {
+    if(alpha < 0 || alpha > 1)
+      throw new IllegalArgumentException("Alpha should be in [0,1]")
+
+    val nfMax = nf.last
+
+    val (nfElem, d) = nf.zipWithIndex.takeWhile { case (elem, idx) =>
+      elem / nfMax < alpha
+    }.last
+
+    if ( d == 0 )
+      d + ( alpha * nfMax - nfElem ) /  nfElem
+    else
+      d + ( alpha * nfMax - nfElem ) / ( nfElem - nf(d-1) )
   }
 
 }
