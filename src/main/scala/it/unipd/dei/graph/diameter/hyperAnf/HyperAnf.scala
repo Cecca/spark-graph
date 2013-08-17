@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory
  */
 object HyperAnf extends TextInputConverter with Timed {
 
-  val logger = LoggerFactory.getLogger(HyperAnf.getClass)
+  val logger = LoggerFactory.getLogger("HyperAnf")
 
   def main(args: Array[String]) = {
     val master = args(0)
