@@ -2,14 +2,14 @@ package it.unipd.dei.graph.diameter.hyperAnf
 
 import spark.{Accumulator, RDD, SparkContext}
 import spark.SparkContext._
-import it.unipd.dei.graph.{TextInputConverter,NodeId,Neighbourhood}
+import it.unipd.dei.graph.{Timed, TextInputConverter, NodeId, Neighbourhood}
 import scala.collection.mutable
 import it.unipd.dei.graph.diameter.{Confidence,EffectiveDiameter}
 
 /**
  * Implementation of HyperANF with spark
  */
-object HyperAnf extends TextInputConverter {
+object HyperAnf extends TextInputConverter with Timed {
 
   def main(args: Array[String]) = {
     val master = args(0)
@@ -20,13 +20,17 @@ object HyperAnf extends TextInputConverter {
     val sc = new SparkContext(master, "HyperANF")
 
     println("Computing neighbourhood function")
-    val nf = hyperAnf(sc, input, numBits, maxIter)
+    val nf = timed("hyperANF") {
+      hyperAnf(sc, input, numBits, maxIter)
+    }
     nf.zipWithIndex.foreach { case (nfElem, idx) =>
       println("N(%d) = %f".format(idx, nfElem))
     }
 
     println("Computing effective diameter")
-    val effDiam = effectiveDiameter(nf)
+    val effDiam = timed("Effective diameter") {
+      effectiveDiameter(nf)
+    }
 
     println("Effective diameter = %f".format(effDiam))
   }

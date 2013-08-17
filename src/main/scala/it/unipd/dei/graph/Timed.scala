@@ -6,7 +6,7 @@ trait Timed {
     val start = System.currentTimeMillis()
     val ret = f
     val end = System.currentTimeMillis()
-    println(name +": " + (end-start) + "ms")
+    println("%s time: %d ms".format(name, (end-start)))
     ret
   }
 
