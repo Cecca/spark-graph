@@ -55,6 +55,21 @@ class HyperLogLogCounterSpec extends FlatSpec {
     assert( cnt == cnt )
   }
 
+  it should "throw an exception if created with less than 2^4 registers" in {
+    intercept[IllegalArgumentException] {
+      new HyperLogLogCounter(0, 1234)
+    }
+    intercept[IllegalArgumentException] {
+      new HyperLogLogCounter(1, 1234)
+    }
+    intercept[IllegalArgumentException] {
+      new HyperLogLogCounter(2, 1234)
+    }
+    intercept[IllegalArgumentException] {
+      new HyperLogLogCounter(3, 1234)
+    }
+  }
+
   "The union of two counters" should
     "have a greater size than the original ones" in {
     val cnt1 = new HyperLogLogCounter(10, 1234)
