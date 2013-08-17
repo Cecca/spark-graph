@@ -49,7 +49,7 @@ class HyperLogLogCounterSpec extends FlatSpec {
     assert( cnt equals cnt )
     assert( cnt == cnt )
 
-    0 until 999 foreach { cnt add _ }
+    0 until 999 foreach { cnt add }
 
     assert( cnt equals cnt )
     assert( cnt == cnt )

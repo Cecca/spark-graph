@@ -11,8 +11,6 @@ import it.unipd.dei.graph.diameter.{Confidence,EffectiveDiameter}
  */
 object HyperAnf extends TextInputConverter {
 
-  type NeighbourhoodFunction = Seq[Double]
-
   def main(args: Array[String]) = {
     val master = args(0)
     val input = args(1)
