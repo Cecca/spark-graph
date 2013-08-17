@@ -16,6 +16,7 @@ object HyperAnf extends TextInputConverter with Timed {
     val input = args(1)
     val numBits = args(2).toInt
     val maxIter = args(3).toInt
+    val alpha = args(4).toDouble
 
     val sc = new SparkContext(master, "HyperANF")
 
@@ -29,7 +30,7 @@ object HyperAnf extends TextInputConverter with Timed {
 
     println("Computing effective diameter")
     val effDiam = timed("Effective diameter") {
-      effectiveDiameter(nf)
+      effectiveDiameter(nf, alpha)
     }
 
     println("Effective diameter = %f".format(effDiam))
@@ -64,7 +65,7 @@ object HyperAnf extends TextInputConverter with Timed {
       new mutable.MutableList[Double]
 
     while(changed != 0 && iter < maxIter) {
-      println("Iteration %d".format(iter))
+      print("Iteration %d\r".format(iter))
       val changedNodes = sc.accumulator(0)
       val neighFunc: Accumulator[Double] = sc.accumulator(0)
 
