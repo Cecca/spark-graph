@@ -28,7 +28,7 @@ trait LocalSparkContext extends BeforeAndAfterEach { self: Suite =>
     super.afterEach()
   }
 
-  private def clearProperties() {
+  protected def clearProperties() {
     System.clearProperty("spark.driver.port")
     System.clearProperty("spark.hostPort")
   }

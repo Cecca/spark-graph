@@ -45,14 +45,18 @@ object HyperAnf extends TextInputConverter with Timed {
       neighbourhood.map((_, counter)) :+ (nodeId, counter)
   }
 
-  def hyperAnf(sc: SparkContext, input: String, numBits: Int, maxIter: Int)
+  def hyperAnf( sc: SparkContext,
+                input: String,
+                numBits: Int,
+                maxIter: Int,
+                seed: Long = System.nanoTime()) // seed is here for testing
   : NeighbourhoodFunction = {
 
     val graph: RDD[(NodeId, Neighbourhood)] =
       sc.textFile(input).map(convertAdj).cache()
 
     val bcastNumBits = sc.broadcast(numBits)
-    val bcastSeed = sc.broadcast(System.nanoTime())
+    val bcastSeed = sc.broadcast(seed)
 
     // init counters
     var counters: RDD[(NodeId, HyperLogLogCounter)] =
