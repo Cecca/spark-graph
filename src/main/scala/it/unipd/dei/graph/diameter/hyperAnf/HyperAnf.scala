@@ -5,11 +5,14 @@ import spark.SparkContext._
 import it.unipd.dei.graph.{Timed, TextInputConverter, NodeId, Neighbourhood}
 import scala.collection.mutable
 import it.unipd.dei.graph.diameter.{Confidence,EffectiveDiameter}
+import org.slf4j.LoggerFactory
 
 /**
  * Implementation of HyperANF with spark
  */
 object HyperAnf extends TextInputConverter with Timed {
+
+  val logger = LoggerFactory.getLogger(HyperAnf.getClass)
 
   def main(args: Array[String]) = {
     val master = args(0)
@@ -20,20 +23,20 @@ object HyperAnf extends TextInputConverter with Timed {
 
     val sc = new SparkContext(master, "HyperANF")
 
-    println("Computing neighbourhood function")
+    logger info "Computing neighbourhood function"
     val nf = timed("hyperANF") {
       hyperAnf(sc, input, numBits, maxIter)
     }
     nf.zipWithIndex.foreach { case (nfElem, idx) =>
-      println("N(%d) = %f".format(idx, nfElem))
+      logger info ("N({}) = {}" , idx, nfElem)
     }
 
-    println("Computing effective diameter")
+    logger info "Computing effective diameter"
     val effDiam = timed("Effective diameter") {
       effectiveDiameter(nf, alpha)
     }
 
-    println("Effective diameter = %f".format(effDiam))
+    logger info ("Effective diameter = {}", effDiam)
   }
 
   def sendCounters(data: (NodeId, (Neighbourhood, HyperLogLogCounter)))
@@ -65,7 +68,7 @@ object HyperAnf extends TextInputConverter with Timed {
       new mutable.MutableList[Double]
 
     while(changed != 0 && iter < maxIter) {
-      print("Iteration %d\r".format(iter))
+      logger info ("Iteration {}", iter)
       val changedNodes = sc.accumulator(0)
       val neighFunc: Accumulator[Double] = sc.accumulator(0)
 
