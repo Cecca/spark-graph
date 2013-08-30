@@ -1,7 +1,7 @@
-package it.unipd.dei.decompositions
+package it.unipd.dei.graph.decompositions
 
 import org.scalatest.FlatSpec
-import it.unipd.dei.decompositions.BallDecomposition._
+import it.unipd.dei.graph.decompositions.BallDecomposition._
 import it.unipd.dei.graph.LocalSparkContext
 
 class BallDecompositionSpecRDD extends FlatSpec with LocalSparkContext {

@@ -1,4 +1,4 @@
-package it.unipd.dei.decompositions
+package it.unipd.dei.graph.decompositions
 
 import spark.SparkContext._
 import spark.{RDD, SparkContext}
