@@ -81,7 +81,7 @@ class BigGraphBallDecompositionSpec extends FlatSpec with BeforeAndAfter
     pending
   }
 
-  "Function colorGraph" should "assign the correct colors to the graph"  ignore {
+  "Function colorGraph" should "assign the correct colors to the graph" in {
     val balls = computeBalls(graph, 1)
     val actualColors = colorGraph(balls)
 

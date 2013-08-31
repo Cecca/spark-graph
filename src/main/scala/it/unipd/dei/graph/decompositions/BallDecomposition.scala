@@ -137,6 +137,12 @@ object BallDecomposition extends Timed {
       }
   }
 
+  def extractColor(data: (NodeId, (NodeTag, Option[Color], Ball)))
+  : (NodeId, Color) = data match {
+    case (node, (_, Some(color), _)) => (node, color)
+    case _ => throw new IllegalArgumentException("Cannot extract a color from a None")
+  }
+
   def colorGraph( balls: RDD[(NodeId, Ball)] )
   : RDD[(NodeId, Color)] = {
 
@@ -146,24 +152,18 @@ object BallDecomposition extends Timed {
     var uncolored = countUncolored(taggedGraph)
 
     while (uncolored > 0) {
-      println(uncolored)
+      println("Uncolored " + uncolored)
 
       // Colored nodes express a vote for all their ball neighbours, candidating them
       // uncolored nodes express a vote saying that the node should not be candidate
       val rawVotes = taggedGraph.flatMap(vote)
       val votes = rawVotes.groupByKey()
 
-//      rawVotes.filter{case (node, _) => node == 107}.collect.foreach{println(_)}
-
-//      val colVotes = votes.collect
-////      colVotes.foreach{println(_)}
-//      println(colVotes.find{ case (id,_) => id == 107} )
-
       // if a node has received all positive votes, then it becomes a candidate
       taggedGraph = taggedGraph.leftOuterJoin(votes).map(markCandidate)
 
-      val candidates = taggedGraph.filter{ case (_,(tag,_,_)) => tag == Candidate} count()
-      println(candidates)
+      val candidates = taggedGraph.filter{ case (_,(tag,_,_)) => tag == Candidate } count()
+      println("Candidates " + candidates)
 
       // each candidate colors its ball neighbours and itself
       val newColors = taggedGraph.flatMap(colorDominated).reduceByKey(max)
@@ -172,7 +172,7 @@ object BallDecomposition extends Timed {
       uncolored = countUncolored(taggedGraph)
     }
 
-    null
+    taggedGraph.map(extractColor)
   }
 
   // --------------------------------------------------------------------------
@@ -190,6 +190,8 @@ object BallDecomposition extends Timed {
     val balls = computeBalls(graph, radius)
 
     val colors = colorGraph(balls)
+
+    colors.saveAsTextFile("final_colors")
 
   }
 
