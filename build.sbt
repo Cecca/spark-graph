@@ -14,6 +14,8 @@ libraryDependencies += "it.unimi.dsi" % "webgraph" % "3.0.9" exclude("ch.qos.log
 
 libraryDependencies += "org.scalatest" % "scalatest_2.9.3" % "1.9.1" exclude("ch.qos.logback", "logback-classic")
 
+libraryDependencies += "org.rogach" %% "scallop" % "0.9.4"
+
 resolvers ++= Seq(
   "Akka Repository" at "http://repo.akka.io/releases/",
   "Spray Repository" at "http://repo.spray.cc/")
