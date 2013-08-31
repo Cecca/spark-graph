@@ -69,21 +69,16 @@ class BigGraphBallDecompositionSpec extends FlatSpec with BeforeAndAfter
 
   }
 
-  "Function isCenter" should "tell if a node is a center" ignore {
-    pending
-  }
-
-  it should "tell if a node is not a center" ignore {
-    pending
-  }
-
-  "Function computeCenters" should "compute the correct centers" ignore {
-    pending
-  }
-
   "Function colorGraph" should "assign the correct colors to the graph" in {
     val balls = computeBalls(graph, 1)
     val actualColors = colorGraph(balls)
+
+    colors.collect.sorted.zip(actualColors.collect.sorted).foreach { _ match {
+      case (expected, actual) =>
+        if( expected != actual )
+          println(actual)
+      }
+    }
 
     colors.collect.sorted.zip(actualColors.collect.sorted).foreach { _ match {
         case (expected, actual) => assert( expected === actual )
