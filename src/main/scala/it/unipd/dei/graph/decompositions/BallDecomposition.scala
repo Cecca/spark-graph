@@ -7,6 +7,14 @@ import it.unipd.dei.graph._
 
 object BallDecomposition extends Timed {
 
+  object NodeTag extends Enumeration {
+    type NodeTag = Value
+    val Colored, Uncolored, Candidate = Value
+  }
+  import NodeTag._
+
+  type TaggedGraph = RDD[(NodeId, (NodeTag, Option[Color], Ball))]
+
   // --------------------------------------------------------------------------
   // Map and reduce functions
 
@@ -56,45 +64,6 @@ object BallDecomposition extends Timed {
         cardB
   }
 
-  /**
-   * Finds if the node is a center.
-   */
-  def isCenter(data: (NodeId, (CardAList , Ball) ))
-  : Boolean = data match {
-    case((nodeId, (cards, ball))) =>
-      val m = cards.reduceLeft(max)
-      m._1 == nodeId
-  }
-
-  def colorDominated(data: (NodeId, (CardAList, Ball) ))
-  : TraversableOnce[(NodeId, (Color, Cardinality))] = data match {
-    case (nodeId, (cardinalities, ball)) =>
-      // fixme: performance: reuse result from previous computation
-      val m = cardinalities.reduce(max)
-      ball.map{ ( _ , (nodeId, m._2) ) }
-  }
-
-  def swap(data: (NodeId, (CardAList, Ball) ))
-  : TraversableOnce[(NodeId, NodeId)] = data match {
-    case (nodeId, (_, ball)) =>
-      ball.map{ (_, nodeId) }
-  }
-
-  def filterColored( data: ( NodeId, ( Option[Seq[NodeId]],
-                                       (CardAList, Ball))) )
-  : (NodeId, (CardAList, Ball) ) = data match {
-    case (nodeId, (toRemove, (cardinalities, ball))) =>
-      toRemove map { toRemoveElems =>
-        val newBall = ball filterNot { toRemoveElems.contains(_) }
-        val newCardinalities = cardinalities filterNot { case (id, card) =>
-          toRemoveElems.contains(id)
-        }
-        (nodeId, (newCardinalities, newBall))
-      } getOrElse {
-        (nodeId, (cardinalities, ball))
-      }
-  }
-
   // --------------------------------------------------------------------------
   // Functions on RDDs
 
@@ -115,45 +84,86 @@ object BallDecomposition extends Timed {
     return balls
   }
 
-  def pruneColored( centers: RDD[(NodeId, (CardAList, Ball))],
-                    uncolored: RDD[(NodeId, (CardAList, Ball))],
-                    newColors: RDD[(NodeId, (Color,Cardinality))])
-  : RDD[(NodeId, (CardAList, Ball))] = {
+  def vote(data: (NodeId, (NodeTag, Option[Color], Ball))) = data match {
+    case (node, (tag, color, ball)) =>
+      val v = tag match {
+        case Colored => true
+        case Uncolored => false
+        case Candidate => throw new IllegalArgumentException("Candidates can't express a vote")
+      }
+      ball map { (_,v) } // send vote to all neighbours
+  }
 
-    val sub = uncolored.subtractByKey(centers)
-                       .subtractByKey(newColors)
+  def countUncolored(taggedGraph: TaggedGraph) =
+    taggedGraph filter { case (_,(tag,_,_)) => tag != Colored } count()
 
-    centers.flatMap(swap) // now we have al the colored nodes
-           .groupByKey()
-           .rightOuterJoin(sub)
-           .map(filterColored)
+  def markCandidate(data: (NodeId, ((NodeTag, Option[Color], Ball), Option[Boolean])))
+  : (NodeId, (NodeTag, Option[Color], Ball)) = data match {
+    case (node, ((tag, color, ball), vote)) =>
+      tag match {
+        case Colored => (node, (tag, color, ball))
+        case _ =>
+          vote map { v =>
+            if (v) {
+              (node, (Candidate, color, ball))
+            } else {
+              (node, (Uncolored, color, ball))
+            }
+          } getOrElse { // there was no vote: the node is dominated by no one
+            (node, (Candidate, color, ball))
+          }
+      }
+  }
+
+  def colorDominated(data: (NodeId, (NodeTag, Option[Color], Ball)))
+  : TraversableOnce[(NodeId,(Color, Cardinality))] = data match {
+    case (node, (Candidate, color, ball)) => {
+      val card = ball.size
+      ball map { (_,(node, card)) }
+    }
+    case _ => Seq()
+  }
+
+  def applyColors(data: (NodeId, ((NodeTag, Option[Color], Ball), Option[(Color,Cardinality)])))
+  : (NodeId, (NodeTag, Option[Color], Ball)) = data match {
+    case (node, ((tag, oldColor, ball), maybeNewColor)) =>
+      tag match {
+        case Colored => (node, (tag, oldColor, ball))
+        case _ =>
+          maybeNewColor map { case (color,_) =>
+            (node, (Colored, Some(color), ball))
+          } getOrElse {
+            (node, (tag, oldColor, ball))
+          }
+      }
   }
 
   def colorGraph( balls: RDD[(NodeId, Ball)] )
   : RDD[(NodeId, Color)] = {
 
-    var uncolored = balls.flatMap(sendCardinalities)
-                         .groupByKey()
-                         .join(balls)
+    var taggedGraph: TaggedGraph =
+      balls.map { case (node,ball) => (node, (Uncolored, None, ball)) }
 
-    val colorsList: mutable.MutableList[RDD[(NodeId,(Color,Cardinality))]] =
-      mutable.MutableList()
+    var uncolored = countUncolored(taggedGraph)
 
-    while(uncolored.count() > 0) {
-      println(uncolored.count())
-      val centers = uncolored.filter(isCenter)
-      val newColors = centers.flatMap(colorDominated)
-      colorsList += newColors
+    while (uncolored > 0) {
+      println(uncolored)
 
-      uncolored = pruneColored(centers, uncolored, newColors)
+      // Colored nodes express a vote for all their ball neighbours, candidating them
+      // uncolored nodes express a vote saying that the node should not be candidate
+      val votes = taggedGraph.flatMap(vote).reduceByKey( _ && _ )
 
+      // if a node has received all positive votes, then it becomes a candidate
+      taggedGraph = taggedGraph.leftOuterJoin(votes).map(markCandidate)
+
+      // each candidate colors its ball neighbours and itself
+      val newColors = taggedGraph.flatMap(colorDominated).reduceByKey(max)
+      taggedGraph = taggedGraph.leftOuterJoin(newColors).map(applyColors)
+
+      uncolored = countUncolored(taggedGraph)
     }
 
-    val colors = colorsList.reduceLeft{ _ union _  }
-
-    colors.reduceByKey(max).map { case (nodeId, (color, card)) =>
-      (nodeId, color)
-    }
+    null
   }
 
   // --------------------------------------------------------------------------

@@ -63,36 +63,20 @@ class BallDecompositionSpec extends FlatSpec with GivenWhenThen {
     assert( max((4,2),(1,2)) === (4,2) )
   }
 
-  "Function isCenter" should "tell if the node is a ball center" in {
-    val cardinalities = Seq((0,5),(1,1),(2,1),(3,1),(4,1))
-    val ball = Seq(0,1,2,3,4)
-
-    assert( isCenter((0, (cardinalities, ball))) )
-  }
-
-  it should "tell if a node is not a ball center" in {
-    val cardinalities = Seq((0,5),(1,1),(2,1),(3,6),(4,1))
-    val ball = Seq(0,1,2,3,4)
-
-    assert( ! isCenter((0, (cardinalities, ball))) )
-
-  }
-
-  "Function colorDominated" should "return all the dominated nodes, colored" in {
-    val ball = Seq(0,1,2,3,4)
-    val cardinalities = Seq((0,5),(1,1),(2,1),(3,1),(4,1))
-    val expected = Seq(
-      ((0,(0,5))),
-      ((1,(0,5))),
-      ((2,(0,5))),
-      ((3,(0,5))),
-      ((4,(0,5)))
-    )
-
-    val actual = colorDominated((0, (cardinalities, ball))).toSeq.sorted
-
-    assert( actual === expected )
-  }
+//  "Function isCenter" should "tell if the node is a ball center" in {
+//    val cardinalities = Seq((0,5),(1,1),(2,1),(3,1),(4,1))
+//    val ball = Seq(0,1,2,3,4)
+//
+//    assert( isCenter((0, (cardinalities, ball))) )
+//  }
+//
+//  it should "tell if a node is not a ball center" in {
+//    val cardinalities = Seq((0,5),(1,1),(2,1),(3,6),(4,1))
+//    val ball = Seq(0,1,2,3,4)
+//
+//    assert( ! isCenter((0, (cardinalities, ball))) )
+//
+//  }
 
 }
 
