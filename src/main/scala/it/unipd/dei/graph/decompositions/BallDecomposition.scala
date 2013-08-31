@@ -4,6 +4,7 @@ import spark.SparkContext._
 import spark.{RDD, SparkContext}
 import scala.collection.mutable
 import it.unipd.dei.graph._
+import org.rogach.scallop.ScallopConf
 
 object BallDecomposition extends Timed {
 
@@ -190,16 +191,34 @@ object BallDecomposition extends Timed {
   // Main
 
   def main(args: Array[String]) = {
-    val master = args(0)
-    val input = args(1)
-    val radius = args(2).toInt
 
-    val sc = new SparkContext(master, "Ball Decomposition")
+    val conf = new Conf(args)
 
-    val graph = sc.textFile(input).map(convertInput).cache()
+    val sc = new SparkContext(conf.master(), "Ball Decomposition")
 
-    val centers = ballDecomposition(graph, radius)
+    val graph = sc.textFile(conf.input()).map(convertInput).cache()
 
+    val centers = ballDecomposition(graph, conf.radius())
+
+  }
+
+  class Conf(args: Seq[String]) extends ScallopConf(args) {
+    version("spark-graph 0.0.1")
+    banner(
+      """Usage: BallDecomposition [options] -i input_file
+        |This program will compute the ball decomposition of a given graph in
+        |parallel.
+        |
+        |Options:
+      """.stripMargin)
+    footer("\nReport issues at https://github.com/Cecca/spark-graph/issues")
+
+
+    val master = opt[String](default = Some("local"), descr="the spark master.")
+
+    val input = opt[String](required = true, descr = "the input graph.")
+
+    val radius = opt[Int](default = Some(1), descr = "the radius of the balls")
   }
 
 }
