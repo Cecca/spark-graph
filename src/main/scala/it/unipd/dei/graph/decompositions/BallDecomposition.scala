@@ -58,26 +58,6 @@ object BallDecomposition extends Timed {
         cardB
   }
 
-  // --------------------------------------------------------------------------
-  // Functions on RDDs
-
-  def computeBalls(graph: RDD[(NodeId,Neighbourhood)], radius: Int)
-  : RDD[(NodeId, Ball)] = {
-
-    var balls = graph.map(data => data) // simply copy the graph
-
-    if ( radius == 1 ) {
-      balls = balls.map({ case (nodeId, neigh) => (nodeId, neigh :+ nodeId) })
-    } else {
-      for(i <- 1 until radius) {
-        val augmentedGraph = graph.join(balls)
-        balls = augmentedGraph.flatMap(sendBalls).reduceByKey(merge)
-      }
-    }
-
-    return balls
-  }
-
   def vote(data: (NodeId, (NodeTag, Option[Color], Ball))) = data match {
     case (node, (tag, color, ball)) => {
       val v = tag match {
@@ -135,6 +115,26 @@ object BallDecomposition extends Timed {
   : (NodeId, Color) = data match {
     case (node, (_, Some(color), _)) => (node, color)
     case _ => throw new IllegalArgumentException("Cannot extract a color from a None")
+  }
+
+  // --------------------------------------------------------------------------
+  // Functions on RDDs
+
+  def computeBalls(graph: RDD[(NodeId,Neighbourhood)], radius: Int)
+  : RDD[(NodeId, Ball)] = {
+
+    var balls = graph.map(data => data) // simply copy the graph
+
+    if ( radius == 1 ) {
+      balls = balls.map({ case (nodeId, neigh) => (nodeId, neigh :+ nodeId) })
+    } else {
+      for(i <- 1 until radius) {
+        val augmentedGraph = graph.join(balls)
+        balls = augmentedGraph.flatMap(sendBalls).reduceByKey(merge)
+      }
+    }
+
+    return balls
   }
 
   def colorGraph( balls: RDD[(NodeId, Ball)] )

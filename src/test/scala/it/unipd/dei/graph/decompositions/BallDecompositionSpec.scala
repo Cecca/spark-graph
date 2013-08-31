@@ -49,21 +49,6 @@ class BallDecompositionSpec extends FlatSpec with GivenWhenThen {
     assert( max((4,2),(1,2)) === (4,2) )
   }
 
-//  "Function isCenter" should "tell if the node is a ball center" in {
-//    val cardinalities = Seq((0,5),(1,1),(2,1),(3,1),(4,1))
-//    val ball = Seq(0,1,2,3,4)
-//
-//    assert( isCenter((0, (cardinalities, ball))) )
-//  }
-//
-//  it should "tell if a node is not a ball center" in {
-//    val cardinalities = Seq((0,5),(1,1),(2,1),(3,6),(4,1))
-//    val ball = Seq(0,1,2,3,4)
-//
-//    assert( ! isCenter((0, (cardinalities, ball))) )
-//
-//  }
-
 }
 
 
