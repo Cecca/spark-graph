@@ -174,6 +174,18 @@ object BallDecomposition extends Timed {
     taggedGraph.map(extractColor)
   }
 
+  def ballDecomposition(graph: RDD[(NodeId, Neighbourhood)], radius: Int) = {
+    val balls = computeBalls(graph, radius)
+
+    val colors = colorGraph(balls)
+
+    colors.saveAsTextFile("final_colors")
+
+    val centers = colors filter {case (n,c) => n==c}
+    println("Number of centers: " + centers.count())
+    centers
+  }
+
   // --------------------------------------------------------------------------
   // Main
 
@@ -186,14 +198,7 @@ object BallDecomposition extends Timed {
 
     val graph = sc.textFile(input).map(convertInput).cache()
 
-    val balls = computeBalls(graph, radius)
-
-    val colors = colorGraph(balls)
-
-    colors.saveAsTextFile("final_colors")
-
-    val centers = colors filter {case (n,c) => n==c}
-    println("Number of centers: " + centers.count())
+    val centers = ballDecomposition(graph, radius)
 
   }
 
