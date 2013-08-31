@@ -85,34 +85,33 @@ object BallDecomposition extends Timed {
   }
 
   def vote(data: (NodeId, (NodeTag, Option[Color], Ball))) = data match {
-    case (node, (tag, color, ball)) =>
+    case (node, (tag, color, ball)) => {
       val v = tag match {
         case Colored => true
         case Uncolored => false
         case Candidate => throw new IllegalArgumentException("Candidates can't express a vote")
       }
-      ball map { (_,v) } // send vote to all neighbours
+      val card = ball.size
+      ball filter { _ != node } map { (_,(v,card)) } // send vote to all neighbours
+    }
   }
 
   def countUncolored(taggedGraph: TaggedGraph) =
     taggedGraph filter { case (_,(tag,_,_)) => tag != Colored } count()
 
-  def markCandidate(data: (NodeId, ((NodeTag, Option[Color], Ball), Option[Boolean])))
+  def markCandidate(data: (NodeId, ((NodeTag, Option[Color], Ball), Option[Seq[(Boolean, Cardinality)]])))
   : (NodeId, (NodeTag, Option[Color], Ball)) = data match {
-    case (node, ((tag, color, ball), vote)) =>
-      tag match {
-        case Colored => (node, (tag, color, ball))
-        case _ =>
-          vote map { v =>
-            if (v) {
-              (node, (Candidate, color, ball))
-            } else {
-              (node, (Uncolored, color, ball))
-            }
-          } getOrElse { // there was no vote: the node is dominated by no one
-            (node, (Candidate, color, ball))
-          }
-      }
+    case (node, ((Colored, color, ball), _)) => (node, (Colored, color, ball))
+    case (node, ((tag, color, ball), Some(votes))) => {
+      val card = ball.size
+      val validVotes = votes filter { case (v,c) => c > card} map { case (v,c) => v }
+      val vote = (true +: validVotes) reduce { _ && _ }
+      if (vote)
+        (node, (Candidate, color, ball))
+      else
+        (node, (tag, color, ball))
+    }
+    case (node, ((tag, color, ball), None)) => (node, (tag, color, ball))
   }
 
   def colorDominated(data: (NodeId, (NodeTag, Option[Color], Ball)))
@@ -151,10 +150,20 @@ object BallDecomposition extends Timed {
 
       // Colored nodes express a vote for all their ball neighbours, candidating them
       // uncolored nodes express a vote saying that the node should not be candidate
-      val votes = taggedGraph.flatMap(vote).reduceByKey( _ && _ )
+      val rawVotes = taggedGraph.flatMap(vote)
+      val votes = rawVotes.groupByKey()
+
+//      rawVotes.filter{case (node, _) => node == 107}.collect.foreach{println(_)}
+
+//      val colVotes = votes.collect
+////      colVotes.foreach{println(_)}
+//      println(colVotes.find{ case (id,_) => id == 107} )
 
       // if a node has received all positive votes, then it becomes a candidate
       taggedGraph = taggedGraph.leftOuterJoin(votes).map(markCandidate)
+
+      val candidates = taggedGraph.filter{ case (_,(tag,_,_)) => tag == Candidate} count()
+      println(candidates)
 
       // each candidate colors its ball neighbours and itself
       val newColors = taggedGraph.flatMap(colorDominated).reduceByKey(max)
