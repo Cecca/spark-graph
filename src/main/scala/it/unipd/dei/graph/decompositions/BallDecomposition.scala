@@ -7,6 +7,8 @@ import it.unipd.dei.graph._
 
 object BallDecomposition extends Timed {
 
+  val verbose = false
+
   object NodeTag extends Enumeration {
     type NodeTag = Value
     val Colored, Uncolored, Candidate = Value
@@ -152,7 +154,8 @@ object BallDecomposition extends Timed {
     var uncolored = countUncolored(taggedGraph)
 
     while (uncolored > 0) {
-      println("Uncolored " + uncolored)
+      if(verbose)
+        println("Uncolored " + uncolored)
 
       // Colored nodes express a vote for all their ball neighbours, candidating them
       // uncolored nodes express a vote saying that the node should not be candidate
@@ -162,8 +165,10 @@ object BallDecomposition extends Timed {
       // if a node has received all positive votes, then it becomes a candidate
       taggedGraph = taggedGraph.leftOuterJoin(votes).map(markCandidate)
 
-      val candidates = taggedGraph.filter{ case (_,(tag,_,_)) => tag == Candidate } count()
-      println("Candidates " + candidates)
+      if (verbose) {
+        val candidates = taggedGraph.filter{ case (_,(tag,_,_)) => tag == Candidate } count()
+        println("Candidates " + candidates)
+      }
 
       // each candidate colors its ball neighbours and itself
       val newColors = taggedGraph.flatMap(colorDominated).reduceByKey(max)
@@ -192,6 +197,9 @@ object BallDecomposition extends Timed {
     val colors = colorGraph(balls)
 
     colors.saveAsTextFile("final_colors")
+
+    val centers = colors filter {case (n,c) => n==c}
+    println("Number of centers: " + centers.count())
 
   }
 
