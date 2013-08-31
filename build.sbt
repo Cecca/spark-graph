@@ -1,6 +1,8 @@
+import AssemblyKeys._
+
 name := "spark-decompositions"
 
-version := "0.1"
+version := "0.1.0"
 
 scalaVersion := "2.9.3"
 
@@ -20,4 +22,26 @@ resolvers ++= Seq(
   "Akka Repository" at "http://repo.akka.io/releases/",
   "Spray Repository" at "http://repo.spray.cc/")
 
+
+// sbt-assembly configuration
+
+assemblySettings
+
+mainClass in assembly := Some("it.unipd.dei.graph.decompositions.BallDecomposition")
+
+test in assembly := {} // skip tests
+
+assembleArtifact in packageScala := false
+
+// directly from the sbt-assembly documentation
+mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>  {
+    case PathList("javax", "servlet", xs @ _*)         => MergeStrategy.first
+    case PathList("org", "apache", "jasper", xs @ _*)  => MergeStrategy.first
+    case PathList(ps @ _*) if ps.last endsWith ".html" => MergeStrategy.first
+    case "application.conf" => MergeStrategy.concat
+    case PathList(ps @ _*) if ps.last endsWith ".properties" => MergeStrategy.concat
+    case "unwanted.txt"     => MergeStrategy.discard
+    case x => old(x)
+  }
+}
 
