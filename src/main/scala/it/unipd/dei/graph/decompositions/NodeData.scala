@@ -1,12 +1,12 @@
 package it.unipd.dei.graph.decompositions
 
-import BallDecomposition.NodeTag._
+import BallDecomposition.NodeStatus._
 import it.unipd.dei.graph._
 
 object NodeData {
 
 }
 
-class NodeData ( val tag: NodeTag,
+class NodeData ( val tag: NodeStatus,
                  val color: Option[Color],
                  val ball: Ball)

@@ -9,13 +9,15 @@ object BallDecomposition extends Timed {
 
   val verbose = false
 
-  object NodeTag extends Enumeration {
-    type NodeTag = Value
+  object NodeStatus extends Enumeration {
+    type NodeStatus = Value
     val Colored, Uncolored, Candidate = Value
   }
-  import NodeTag._
+  import NodeStatus._
 
-  type TaggedGraph = RDD[(NodeId, (NodeTag, Option[Color], Ball))]
+  type NodeTag = (NodeStatus, Option[Color], Ball)
+
+  type TaggedGraph = RDD[(NodeId, NodeTag)]
 
   // --------------------------------------------------------------------------
   // Map and reduce functions
@@ -58,9 +60,9 @@ object BallDecomposition extends Timed {
         cardB
   }
 
-  def vote(data: (NodeId, (NodeTag, Option[Color], Ball))) = data match {
-    case (node, (tag, color, ball)) => {
-      val v = tag match {
+  def vote(data: (NodeId, NodeTag)) = data match {
+    case (node, (status, color, ball)) => {
+      val v = status match {
         case Colored => true
         case Uncolored => false
         case Candidate => throw new IllegalArgumentException("Candidates can't express a vote")
@@ -70,25 +72,22 @@ object BallDecomposition extends Timed {
     }
   }
 
-  def countUncolored(taggedGraph: TaggedGraph) =
-    taggedGraph filter { case (_,(tag,_,_)) => tag != Colored } count()
-
-  def markCandidate(data: (NodeId, ((NodeTag, Option[Color], Ball), Option[Seq[(Boolean, Cardinality)]])))
-  : (NodeId, (NodeTag, Option[Color], Ball)) = data match {
+  def markCandidate(data: (NodeId, (NodeTag, Option[Seq[(Boolean, Cardinality)]])))
+  : (NodeId, (NodeStatus, Option[Color], Ball)) = data match {
     case (node, ((Colored, color, ball), _)) => (node, (Colored, color, ball))
-    case (node, ((tag, color, ball), Some(votes))) => {
+    case (node, ((status, color, ball), Some(votes))) => {
       val card = ball.size
       val validVotes = votes filter { case (v,c) => c > card} map { case (v,c) => v }
       val vote = (true +: validVotes) reduce { _ && _ }
       if (vote)
         (node, (Candidate, color, ball))
       else
-        (node, (tag, color, ball))
+        (node, (status, color, ball))
     }
-    case (node, ((tag, color, ball), None)) => (node, (tag, color, ball))
+    case (node, ((status, color, ball), None)) => (node, (status, color, ball))
   }
 
-  def colorDominated(data: (NodeId, (NodeTag, Option[Color], Ball)))
+  def colorDominated(data: (NodeId, NodeTag))
   : TraversableOnce[(NodeId,(Color, Cardinality))] = data match {
     case (node, (Candidate, color, ball)) => {
       val card = ball.size
@@ -97,21 +96,21 @@ object BallDecomposition extends Timed {
     case _ => Seq()
   }
 
-  def applyColors(data: (NodeId, ((NodeTag, Option[Color], Ball), Option[(Color,Cardinality)])))
-  : (NodeId, (NodeTag, Option[Color], Ball)) = data match {
-    case (node, ((tag, oldColor, ball), maybeNewColor)) =>
-      tag match {
-        case Colored => (node, (tag, oldColor, ball))
+  def applyColors(data: (NodeId, (NodeTag, Option[(Color,Cardinality)])))
+  : (NodeId, (NodeStatus, Option[Color], Ball)) = data match {
+    case (node, ((status, oldColor, ball), maybeNewColor)) =>
+      status match {
+        case Colored => (node, (status, oldColor, ball))
         case _ =>
           maybeNewColor map { case (color,_) =>
             (node, (Colored, Some(color), ball))
           } getOrElse {
-            (node, (tag, oldColor, ball))
+            (node, (status, oldColor, ball))
           }
       }
   }
 
-  def extractColor(data: (NodeId, (NodeTag, Option[Color], Ball)))
+  def extractColor(data: (NodeId, NodeTag))
   : (NodeId, Color) = data match {
     case (node, (_, Some(color), _)) => (node, color)
     case _ => throw new IllegalArgumentException("Cannot extract a color from a None")
@@ -136,6 +135,9 @@ object BallDecomposition extends Timed {
 
     return balls
   }
+
+  def countUncolored(taggedGraph: TaggedGraph) =
+    taggedGraph filter { case (_,(tag,_,_)) => tag != Colored } count()
 
   def colorGraph( balls: RDD[(NodeId, Ball)] )
   : RDD[(NodeId, Color)] = {
