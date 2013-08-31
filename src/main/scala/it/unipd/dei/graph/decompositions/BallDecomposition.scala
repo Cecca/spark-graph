@@ -73,7 +73,7 @@ object BallDecomposition extends Timed {
   }
 
   def markCandidate(data: (NodeId, (NodeTag, Option[Seq[(Boolean, Cardinality)]])))
-  : (NodeId, (NodeStatus, Option[Color], Ball)) = data match {
+  : (NodeId, NodeTag) = data match {
     case (node, ((Colored, color, ball), _)) => (node, (Colored, color, ball))
     case (node, ((status, color, ball), Some(votes))) => {
       val card = ball.size
@@ -97,7 +97,7 @@ object BallDecomposition extends Timed {
   }
 
   def applyColors(data: (NodeId, (NodeTag, Option[(Color,Cardinality)])))
-  : (NodeId, (NodeStatus, Option[Color], Ball)) = data match {
+  : (NodeId, NodeTag) = data match {
     case (node, ((status, oldColor, ball), maybeNewColor)) =>
       status match {
         case Colored => (node, (status, oldColor, ball))
