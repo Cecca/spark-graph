@@ -175,16 +175,30 @@ object BallDecomposition extends Timed {
     taggedGraph.map(extractColor)
   }
 
+  def relabelArcs(graph: RDD[(NodeId,Neighbourhood)], colors: RDD[(NodeId, Color)])
+  : RDD[(NodeId,Neighbourhood)] = timed("Relabeling") {
+
+    var edges: RDD[(NodeId,NodeId)] =
+      graph.flatMap { case (src, neighs) => neighs map { (src,_) } }
+
+    // replace sources with their color
+    edges = edges.join(colors)
+      .map{ case (src, (dst, srcColor)) => (dst, srcColor) }
+
+    // replace destinations with their colors
+    edges = edges.join(colors)
+      .map{ case (dst, (srcColor, dstColor)) => (srcColor, dstColor) }
+
+    // now revert to an adjacency list representation
+    edges.groupByKey().map{case (node, neighs) => (node, neighs.distinct)}
+  }
+
   def ballDecomposition(graph: RDD[(NodeId, Neighbourhood)], radius: Int) = timed("Ball decomposition") {
     val balls = computeBalls(graph, radius)
 
     val colors = colorGraph(balls)
 
-    colors.saveAsTextFile("final_colors")
-
-    val centers = colors filter {case (n,c) => n==c}
-    println("Number of centers: " + centers.count())
-    centers
+    relabelArcs(graph, colors)
   }
 
   // --------------------------------------------------------------------------
@@ -198,7 +212,11 @@ object BallDecomposition extends Timed {
 
     val graph = sc.textFile(conf.input()).map(convertInput).cache()
 
-    val centers = ballDecomposition(graph, conf.radius())
+    val quotient = ballDecomposition(graph, conf.radius())
+
+    println("Quotient cardinality: " + quotient.count())
+
+    quotient.saveAsTextFile(conf.output())
 
   }
 
@@ -217,6 +235,8 @@ object BallDecomposition extends Timed {
     val master = opt[String](default = Some("local"), descr="the spark master.")
 
     val input = opt[String](required = true, descr = "the input graph.")
+
+    val output = opt[String](default = Some("output"), descr = "the output graph")
 
     val radius = opt[Int](default = Some(1), descr = "the radius of the balls")
   }
