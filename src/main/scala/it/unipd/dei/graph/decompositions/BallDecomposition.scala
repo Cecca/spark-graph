@@ -120,7 +120,7 @@ object BallDecomposition extends Timed {
   // Functions on RDDs
 
   def computeBalls(graph: RDD[(NodeId,Neighbourhood)], radius: Int)
-  : RDD[(NodeId, Ball)] = {
+  : RDD[(NodeId, Ball)] = timed("Balls computation") {
 
     var balls = graph.map(data => data) // simply copy the graph
 
@@ -140,7 +140,7 @@ object BallDecomposition extends Timed {
     taggedGraph filter { case (_,(tag,_,_)) => tag != Colored } count()
 
   def colorGraph( balls: RDD[(NodeId, Ball)] )
-  : RDD[(NodeId, Color)] = {
+  : RDD[(NodeId, Color)] = timed("Graph coloring") {
 
     var taggedGraph: TaggedGraph =
       balls.map { case (node,ball) => (node, (Uncolored, None, ball)) }
@@ -174,7 +174,7 @@ object BallDecomposition extends Timed {
     taggedGraph.map(extractColor)
   }
 
-  def ballDecomposition(graph: RDD[(NodeId, Neighbourhood)], radius: Int) = {
+  def ballDecomposition(graph: RDD[(NodeId, Neighbourhood)], radius: Int) = timed("Ball decomposition") {
     val balls = computeBalls(graph, radius)
 
     val colors = colorGraph(balls)
