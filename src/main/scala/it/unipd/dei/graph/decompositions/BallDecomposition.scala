@@ -33,14 +33,6 @@ object BallDecomposition extends Timed {
   def merge(ballA: Ball, ballB: Ball) =
     (ballA.distinct ++ ballB.distinct).distinct
 
-  def sendCardinalities(data: (NodeId, Ball))
-  : TraversableOnce[(NodeId, (NodeId, Cardinality))] = data match {
-    case (nodeId, ball) =>
-      val card = ball.size
-      val message = (nodeId, card)
-      ball.map((_, message))
-  }
-
   /**
    * Tells if `cardA` is greater than `cardB`. Breaks ties on the cardinality
    * using the ID.

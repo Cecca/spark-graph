@@ -36,20 +36,6 @@ class BallDecompositionSpec extends FlatSpec with GivenWhenThen {
     assert( merge(Seq(1,2,3,4), Seq(3,4,5)) === Seq(1,2,3,4,5) )
   }
 
-  "Function sendCardinalities" should
-    "send the ball cardinality to all ball neighbours" in {
-    val ball = Seq(0,1,2,3,4)
-    val expected = List(
-      (0,(0,ball.size)),
-      (1,(0,ball.size)),
-      (2,(0,ball.size)),
-      (3,(0,ball.size)),
-      (4,(0,ball.size))
-    )
-
-    assert( expected === sendCardinalities((0,ball)) )
-  }
-
   "Function max" should "find the maximum between two cardinalities" in {
     assert( max((0,2),(2,1)) === (0,2) )
     assert( max((0,2),(2,15)) === (2,15) )
