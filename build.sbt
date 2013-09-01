@@ -10,6 +10,8 @@ scalaVersion := "2.9.3"
 // multiple SparkContexts
 parallelExecution in Test := false
 
+libraryDependencies += "org.apache.hadoop" % "hadoop-client" % "2.0.0-cdh4.2.0"
+
 libraryDependencies += "org.spark-project" % "spark-core_2.9.3" % "0.7.3" exclude("ch.qos.logback", "logback-classic")
 
 libraryDependencies += "it.unimi.dsi" % "webgraph" % "3.0.9" exclude("ch.qos.logback", "logback-classic")
@@ -19,6 +21,7 @@ libraryDependencies += "org.scalatest" % "scalatest_2.9.3" % "1.9.1" exclude("ch
 libraryDependencies += "org.rogach" %% "scallop" % "0.9.4"
 
 resolvers ++= Seq(
+  "Cloudera Repository" at "https://repository.cloudera.com/artifactory/cloudera-repos/",
   "Akka Repository" at "http://repo.akka.io/releases/",
   "Spray Repository" at "http://repo.spray.cc/")
 
