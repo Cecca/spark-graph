@@ -12,7 +12,10 @@ parallelExecution in Test := false
 
 libraryDependencies += "org.apache.hadoop" % "hadoop-client" % "2.0.0-cdh4.2.0"
 
-libraryDependencies += "org.spark-project" % "spark-core_2.9.3" % "0.7.3" exclude("ch.qos.logback", "logback-classic")
+libraryDependencies += "org.spark-project" % "spark-core_2.9.3" % "0.7.3" excludeAll(
+    ExclusionRule("ch.qos.logback"),
+    ExclusionRule("org.apache.hadoop")
+    )
 
 libraryDependencies += "it.unimi.dsi" % "webgraph" % "3.0.9" exclude("ch.qos.logback", "logback-classic")
 
@@ -40,7 +43,7 @@ assembleArtifact in packageScala := false
 mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>  {
     case PathList("javax", "servlet", xs @ _*)         => MergeStrategy.first
     case PathList("org", "apache", "jasper", xs @ _*)  => MergeStrategy.first
-    case PathList(ps @ _*) if ps.last endsWith ".html" => MergeStrategy.first
+    case PathList(ps @ _*) if ps.last endsWith ".class" => MergeStrategy.first
     case "application.conf" => MergeStrategy.concat
     case PathList(ps @ _*) if ps.last endsWith ".properties" => MergeStrategy.concat
     case "unwanted.txt"     => MergeStrategy.discard
