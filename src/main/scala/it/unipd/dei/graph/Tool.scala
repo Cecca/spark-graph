@@ -57,23 +57,34 @@ object Tool extends TextInputConverter with Timed {
   }
 
   class Conf(args: Seq[String]) extends ScallopConf(args) {
+    version("spark-graph 0.1.0")
+    banner("Usage: spark-graph [ball-dec|hyper-anf] -i input [options]")
+    footer("\nReport issues at https://github.com/Cecca/spark-graph/issues")
 
     val ballDec = new Subcommand("ball-dec") with CommonOptions {
-      val radius = opt[Int](default = Some(1))
+      banner("Computes the ball decomposition of the given graph")
+      val radius = opt[Int](default = Some(1), descr="the radius of the balls")
     }
 
     val hyperAnf = new Subcommand("hyper-anf") with CommonOptions {
-      val numbits = opt[Int](default = Some(4))
-      val maxiter = opt[Int](default = Some(10))
-      val alpha = opt[Double](default = Some(1.0))
+      banner("Computes the effective diameter at alpha of the given graph")
+      val numbits = opt[Int](default = Some(4),
+        descr="the number of bits for each counter")
+      val maxiter = opt[Int](default = Some(10),
+        descr="the maximum number of iterations")
+      val alpha = opt[Double](default = Some(1.0),
+        descr="the value we compute the effective diameter at")
     }
 
   }
 
   trait CommonOptions extends ScallopConf {
-    val master = opt[String](default = Some("local"))
-    val input = opt[String](required = true)
-    val output = opt[String](default = Some("output"))
+    val master = opt[String](default = Some("local"),
+      descr="the spark master")
+    val input = opt[String](required = true,
+      descr="the input graph")
+    val output = opt[String](default = Some("output"),
+      descr="the output file")
   }
 
 }
