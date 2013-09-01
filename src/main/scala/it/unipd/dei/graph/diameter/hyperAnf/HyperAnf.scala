@@ -14,31 +14,6 @@ object HyperAnf extends TextInputConverter with Timed {
 
   val logger = LoggerFactory.getLogger("HyperAnf")
 
-  def main(args: Array[String]) = {
-    val master = args(0)
-    val input = args(1)
-    val numBits = args(2).toInt
-    val maxIter = args(3).toInt
-    val alpha = args(4).toDouble
-
-    val sc = new SparkContext(master, "HyperANF")
-
-    logger info "Computing neighbourhood function"
-    val nf = timed("hyperANF") {
-      hyperAnf(sc, input, numBits, maxIter)
-    }
-    nf.zipWithIndex.foreach { case (nfElem, idx) =>
-      logger info ("N({}) = {}" , idx, nfElem)
-    }
-
-    logger info "Computing effective diameter"
-    val effDiam = timed("Effective diameter") {
-      effectiveDiameter(nf, alpha)
-    }
-
-    logger info ("Effective diameter = {}", effDiam)
-  }
-
   def sendCounters(data: (NodeId, (Neighbourhood, HyperLogLogCounter)))
   : TraversableOnce[(NodeId, HyperLogLogCounter)] = data match {
     case (nodeId, (neighbourhood, counter)) =>

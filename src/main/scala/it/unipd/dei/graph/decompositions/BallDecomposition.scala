@@ -201,44 +201,4 @@ object BallDecomposition extends Timed {
     relabelArcs(graph, colors)
   }
 
-  // --------------------------------------------------------------------------
-  // Main
-
-  def main(args: Array[String]) = {
-
-    val conf = new Conf(args)
-
-    val sc = new SparkContext(conf.master(), "Ball Decomposition")
-
-    val graph = sc.textFile(conf.input()).map(convertInput).cache()
-
-    val quotient = ballDecomposition(graph, conf.radius())
-
-    println("Quotient cardinality: " + quotient.count())
-
-    quotient.saveAsTextFile(conf.output())
-
-  }
-
-  class Conf(args: Seq[String]) extends ScallopConf(args) {
-    version("spark-graph 0.0.1")
-    banner(
-      """Usage: BallDecomposition [options] -i input_file
-        |This program will compute the ball decomposition of a given graph in
-        |parallel.
-        |
-        |Options:
-      """.stripMargin)
-    footer("\nReport issues at https://github.com/Cecca/spark-graph/issues")
-
-
-    val master = opt[String](default = Some("local"), descr="the spark master.")
-
-    val input = opt[String](required = true, descr = "the input graph.")
-
-    val output = opt[String](default = Some("output"), descr = "the output graph")
-
-    val radius = opt[Int](default = Some(1), descr = "the radius of the balls")
-  }
-
 }
