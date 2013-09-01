@@ -72,7 +72,7 @@ object HyperAnf extends TextInputConverter with Timed {
       new mutable.MutableList[Double]
 
     while(changed != 0 && iter < maxIter) {
-      logger info ("Iteration {}", iter)
+      logger debug ("Iteration {}", iter)
       val changedNodes = sc.accumulator(0)
       val neighFunc: Accumulator[Double] = sc.accumulator(0)
 

@@ -40,13 +40,14 @@ object Tool extends TextInputConverter with Timed {
                     conf.hyperAnf.numbits(), conf.hyperAnf.maxiter())
         }
         nf.zipWithIndex.foreach { case (nfElem, idx) =>
-          logger info ("N({}) = {}" , idx, nfElem)
+          println ("N(%d) = %f".format(idx, nfElem))
         }
         logger info "Computing effective diameter"
         val effDiam = timed("Effective diameter") {
           effectiveDiameter(nf, conf.hyperAnf.alpha())
         }
-        logger info ("Effective diameter = {}", effDiam)
+        println ("Effective diameter at %f = %f".format(
+          conf.hyperAnf.alpha(), effDiam))
       }
 
       // Default help printing ------------------------------------------------
