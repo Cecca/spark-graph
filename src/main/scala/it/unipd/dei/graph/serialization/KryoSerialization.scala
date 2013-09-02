@@ -19,22 +19,27 @@ package it.unipd.dei.graph.serialization
 
 import com.esotericsoftware.kryo.Kryo
 import it.unipd.dei.graph.diameter.hyperAnf.HyperLogLogCounter
+import it.unipd.dei.graph.decompositions.BallDecomposition._
 
 /**
  * Trait that enables kryo serialization and registers some classes
  */
-trait KryoSerialization extends spark.KryoRegistrator {
+trait KryoSerialization {
 
   System.setProperty("spark.serializer", "spark.KryoSerializer")
   System.setProperty("spark.kryo.registrator",
-    "it.unipd.dei.graph.serialization.KryoSerialization")
+    "it.unipd.dei.graph.serialization.GraphKryoRegistrator")
+
+}
+
+class GraphKryoRegistrator extends spark.KryoRegistrator {
 
   override def registerClasses(kryo: Kryo) {
     kryo.register(classOf[Int])
-    kryo.register(classOf[Seq])
     kryo.register(classOf[Seq[Int]])
     kryo.register(classOf[(Int,Int)])
     kryo.register(classOf[HyperLogLogCounter])
+    kryo.register(classOf[Enumeration])
   }
 
 }

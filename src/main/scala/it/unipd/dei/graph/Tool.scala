@@ -20,13 +20,14 @@ package it.unipd.dei.graph
 import org.rogach.scallop.{Subcommand, ScallopConf}
 import it.unipd.dei.graph.decompositions.BallDecomposition._
 import it.unipd.dei.graph.diameter.hyperAnf.HyperAnf._
+import it.unipd.dei.graph.serialization.KryoSerialization
 import spark.SparkContext
 import org.slf4j.LoggerFactory
 
 /**
  * Main entry point for the entire application
  */
-object Tool extends TextInputConverter with Timed {
+object Tool extends TextInputConverter with Timed  with KryoSerialization {
 
   val logger = LoggerFactory.getLogger("spark-graph")
 
@@ -53,6 +54,7 @@ object Tool extends TextInputConverter with Timed {
       // HyperANF -------------------------------------------------------------
       case Some(conf.hyperAnf) => {
         val sc = new SparkContext(conf.hyperAnf.master(), "HyperANF")
+
         logger info "Computing neighbourhood function"
         val nf = timed("hyperANF") {
           hyperAnf( sc, conf.hyperAnf.input(),
