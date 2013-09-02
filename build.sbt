@@ -23,6 +23,8 @@ libraryDependencies += "org.scalatest" % "scalatest_2.9.3" % "1.9.1" exclude("ch
 
 libraryDependencies += "org.rogach" %% "scallop" % "0.9.4"
 
+libraryDependencies += "com.twitter" %% "chill" % "0.3.1"
+
 resolvers ++= Seq(
   "Cloudera Repository" at "https://repository.cloudera.com/artifactory/cloudera-repos/",
   "Akka Repository" at "http://repo.akka.io/releases/",
