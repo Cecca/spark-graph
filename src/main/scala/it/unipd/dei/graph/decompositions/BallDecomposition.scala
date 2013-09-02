@@ -25,10 +25,12 @@ object BallDecomposition extends Timed {
 
   val verbose = false
 
-  object NodeStatus extends Enumeration {
-    type NodeStatus = Value
-    val Colored, Uncolored, Candidate = Value
+  object NodeStatus {
+    val Colored   : Byte = 0
+    val Uncolored : Byte = 1
+    val Candidate : Byte = 2
   }
+  type NodeStatus = Byte
   import NodeStatus._
 
   type NodeTag = (NodeStatus, Option[Color], Ball)

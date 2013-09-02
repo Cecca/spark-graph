@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory
 /**
  * Main entry point for the entire application
  */
-object Tool extends TextInputConverter with Timed {
+object Tool extends TextInputConverter with Timed with KryoSerialization {
 
   val logger = LoggerFactory.getLogger("spark-graph")
 
