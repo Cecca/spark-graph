@@ -18,10 +18,8 @@
 package it.unipd.dei.graph.decompositions
 
 import spark.SparkContext._
-import spark.{RDD, SparkContext}
-import scala.collection.mutable
+import spark.RDD
 import it.unipd.dei.graph._
-import org.rogach.scallop.ScallopConf
 
 object BallDecomposition extends Timed {
 
