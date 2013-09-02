@@ -23,9 +23,6 @@ libraryDependencies += "org.scalatest" % "scalatest_2.9.3" % "1.9.1" exclude("ch
 
 libraryDependencies += "org.rogach" %% "scallop" % "0.9.4"
 
-// TODO: remove when Spark-0.8.0 come out. It is already included there
-libraryDependencies += "com.twitter" %% "chill" % "0.3.1"
-
 resolvers ++= Seq(
   "Cloudera Repository" at "https://repository.cloudera.com/artifactory/cloudera-repos/",
   "Akka Repository" at "http://repo.akka.io/releases/",
