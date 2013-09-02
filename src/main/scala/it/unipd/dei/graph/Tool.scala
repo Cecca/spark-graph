@@ -39,11 +39,13 @@ object Tool extends TextInputConverter with Timed {
       case Some(conf.ballDec) => {
         val sc = new SparkContext(conf.ballDec.master(), "Ball Decomposition")
 
+        logger info "Loading dataset"
         val graph = sc.textFile(conf.ballDec.input()).map(convertAdj).cache()
 
+        logger info "Computing ball decomposition"
         val quotient = ballDecomposition(graph, conf.ballDec.radius())
 
-        println("Quotient cardinality: " + quotient.count())
+        logger info ("Quotient cardinality: {}", quotient.count())
 
         quotient.saveAsTextFile(conf.ballDec.output())
       }
@@ -57,13 +59,13 @@ object Tool extends TextInputConverter with Timed {
                     conf.hyperAnf.numbits(), conf.hyperAnf.maxiter())
         }
         nf.zipWithIndex.foreach { case (nfElem, idx) =>
-          println ("N(%d) = %f".format(idx, nfElem))
+          logger info ("N(%d) = %f".format(idx, nfElem))
         }
         logger info "Computing effective diameter"
         val effDiam = timed("Effective diameter") {
           effectiveDiameter(nf, conf.hyperAnf.alpha())
         }
-        println ("Effective diameter at %f = %f".format(
+        logger info ("Effective diameter at %f = %f".format(
           conf.hyperAnf.alpha(), effDiam))
       }
 
