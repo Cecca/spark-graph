@@ -20,10 +20,10 @@ package it.unipd.dei
 package object graph {
 
   type NodeId = Int
-  type Neighbourhood = Seq[NodeId]
-  type Ball = Seq[NodeId]
+  type Neighbourhood = Array[NodeId]
+  type Ball = Array[NodeId]
   type Color = Int
   type Cardinality = Int
-  type CardAList = Seq[(NodeId, Cardinality)]
+  type CardAList = Array[(NodeId, Cardinality)]
 
 }

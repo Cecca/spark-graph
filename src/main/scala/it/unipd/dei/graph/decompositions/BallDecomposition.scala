@@ -205,7 +205,7 @@ object BallDecomposition extends Timed {
       .map{ case (dst, (srcColor, dstColor)) => (srcColor, dstColor) }
 
     // now revert to an adjacency list representation
-    edges.groupByKey().map{case (node, neighs) => (node, neighs.distinct)}
+    edges.groupByKey().map{case (node, neighs) => (node, neighs.distinct.toArray)}
   }
 
   def ballDecomposition(graph: RDD[(NodeId, Neighbourhood)], radius: Int) = timed("Ball decomposition") {
