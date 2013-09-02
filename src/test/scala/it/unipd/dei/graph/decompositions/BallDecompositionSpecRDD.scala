@@ -25,13 +25,13 @@ class BallDecompositionSpecRDD extends FlatSpec with LocalSparkContext {
 
   "Function computeBalls" should "correctly compute balls of radius one" in {
     val graph = sc.parallelize(Seq(
-      (0,Seq(1,2,3)),
-      (1,Seq(0)),
-      (2,Seq(0)),
-      (3,Seq(0))
+      (0,Array(1,2,3)),
+      (1,Array(0)),
+      (2,Array(0)),
+      (3,Array(0))
     ))
 
-    val balls = computeBalls(graph, 1).collect()
+    val balls = computeBalls(graph, 1).collect().map{case (n, neighs) => (n, neighs.toSeq)}
     val expected = Array(
       (0,Seq(1,2,3,0)),
       (1,Seq(0,1)),

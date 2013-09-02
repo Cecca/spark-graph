@@ -22,35 +22,38 @@ import BallDecomposition._
 
 class BallDecompositionSpec extends FlatSpec with GivenWhenThen {
 
-  "Function convertInput" should "correctly convert well formed input" in {
+  "Function convertAdj" should "correctly convert well formed input" in {
     info("with more than one neighbour")
-    assert( convertInput("0 1 2 3 4 5") === (0, Seq(1,2,3,4,5)))
+    val neighsResult = convertInput("0 1 2 3 4 5")
+    assert( (neighsResult._1, neighsResult._2.toSeq) === (0, Seq(1,2,3,4,5)))
+
     info("with no neighbours")
-    assert( convertInput("0") === (0, Seq()) )
+    val noNeighs = convertInput("0")
+    assert( (noNeighs._1, noNeighs._2.toSeq) === (0, Seq()) )
   }
 
   "Function sendBalls" should "send balls to all neighbours" in {
-    val ball = Seq(1,2,3)
+    val ball = Array(1,2,3)
     info("with no neighbours")
-    assert( sendBalls((0,(Seq(),ball))) === Seq((0,ball)) )
+    assert( sendBalls((0,(Array(),ball))) === Array((0,ball)) )
     info("with one neighbour")
-    assert( sendBalls((0,(Seq(1),ball))) === Seq((1,ball),(0,ball)) )
+    assert( sendBalls((0,(Array(1),ball))) === Array((1,ball),(0,ball)) )
     info("with two neighbours")
-    assert( sendBalls((0,(Seq(1,2),ball))) === Seq((1,ball),(2,ball),(0,ball)) )
+    assert( sendBalls((0,(Array(1,2),ball))) === Array((1,ball),(2,ball),(0,ball)) )
   }
 
   "Function merge" should "merge non empty balls" in {
-    assert( merge(Seq(1,2,3), Seq(4,5,6)) === Seq(1,2,3,4,5,6) )
+    assert( merge(Array(1,2,3), Array(4,5,6)) === Array(1,2,3,4,5,6) )
   }
 
   it should "handle gracefully empty balls" in {
-    assert( merge(Seq(), Seq()) === Seq() )
-    assert( merge(Seq(1), Seq()) === Seq(1) )
-    assert( merge(Seq(), Seq(1)) === Seq(1) )
+    assert( merge(Array(), Array()) === Array() )
+    assert( merge(Array(1), Array()) === Array(1) )
+    assert( merge(Array(), Array(1)) === Array(1) )
   }
 
-  it should "handle overlapping sequences by elminating duplicates" in {
-    assert( merge(Seq(1,2,3,4), Seq(3,4,5)) === Seq(1,2,3,4,5) )
+  it should "handle overlapping Arrayuences by elminating duplicates" in {
+    assert( merge(Array(1,2,3,4), Array(3,4,5)) === Array(1,2,3,4,5) )
   }
 
   "Function max" should "find the maximum between two cardinalities" in {
