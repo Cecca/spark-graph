@@ -33,7 +33,7 @@ resolvers ++= Seq(
 
 assemblySettings
 
-mainClass in assembly := Some("it.unipd.dei.graph.decompositions.BallDecomposition")
+mainClass in assembly := Some("it.unipd.dei.graph.Tool")
 
 test in assembly := {} // skip tests
 
