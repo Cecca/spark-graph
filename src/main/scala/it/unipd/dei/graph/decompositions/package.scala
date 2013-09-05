@@ -15,30 +15,33 @@
  *     along with this program.  If not, see <http://www.gnu.org/licenses/>
  */
 
-package it.unipd.dei.graph.serialization
+package it.unipd.dei.graph
 
-import com.esotericsoftware.kryo.Kryo
-import it.unipd.dei.graph.diameter.hyperAnf.HyperLogLogCounter
+package object decompositions {
 
-/**
- * Trait that enables kryo serialization and registers some classes
- */
-trait KryoSerialization {
+  /**
+   * Tells if `cardA` is greater than `cardB`. Breaks ties on the cardinality
+   * using the ID.
+   */
+  def gt(cardA: (NodeId, Cardinality), cardB: (NodeId, Cardinality))
+  : Boolean = (cardA, cardB) match {
+    case ((idA, cA), (idB, cB)) =>
+      if(cA > cB)
+        true
+      else if(cA < cB)
+        false
+      else if(idA > idB)
+        true
+      else
+        false
+  }
 
-  System.setProperty("spark.serializer", "spark.KryoSerializer")
-  System.setProperty("spark.kryo.registrator",
-    "it.unipd.dei.graph.serialization.GraphKryoRegistrator")
-
-}
-
-class GraphKryoRegistrator extends spark.KryoRegistrator {
-
-  override def registerClasses(kryo: Kryo) {
-    kryo.register(classOf[Int])
-    kryo.register(classOf[Boolean])
-    kryo.register(classOf[Seq[Int]])
-    kryo.register(classOf[(Int,Int)])
-    kryo.register(classOf[HyperLogLogCounter])
+  def max(cardA: (NodeId, Cardinality), cardB: (NodeId, Cardinality))
+  : (NodeId, Cardinality) = {
+    if(gt(cardA, cardB))
+      cardA
+    else
+      cardB
   }
 
 }

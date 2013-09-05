@@ -23,6 +23,7 @@ import it.unipd.dei.graph.diameter.hyperAnf.HyperAnf._
 import it.unipd.dei.graph.serialization.KryoSerialization
 import spark.SparkContext
 import org.slf4j.LoggerFactory
+import it.unipd.dei.graph.decompositions.RandomizedBallDecomposition._
 
 /**
  * Main entry point for the entire application
@@ -49,6 +50,25 @@ object Tool extends TextInputConverter with Timed with KryoSerialization {
         logger info ("Quotient cardinality: {}", quotient.count())
 
         quotient.saveAsTextFile(conf.ballDec.output())
+      }
+
+      // Randomized ball Decomposition ----------------------------------------
+      case Some(conf.rndBallDec) => {
+        val sc = new SparkContext(conf.rndBallDec.master(), "Ball Decomposition")
+
+        logger info "Loading dataset"
+        val graph = sc.textFile(conf.rndBallDec.input()).map(convertAdj).cache()
+
+        logger info "Computing randomized ball decomposition"
+        val prob = sc.broadcast(conf.rndBallDec.probability())
+        val quotient = randomizedBallDecomposition(
+          graph,
+          conf.rndBallDec.radius(),
+          prob)
+
+        logger info ("Quotient cardinality: {}", quotient.count())
+
+        quotient.saveAsTextFile(conf.rndBallDec.output())
       }
 
       // HyperANF -------------------------------------------------------------
@@ -85,6 +105,13 @@ object Tool extends TextInputConverter with Timed with KryoSerialization {
     val ballDec = new Subcommand("ball-dec") with CommonOptions {
       banner("Computes the ball decomposition of the given graph")
       val radius = opt[Int](default = Some(1), descr="the radius of the balls")
+    }
+
+    val rndBallDec = new Subcommand("rnd-ball-dec") with CommonOptions {
+      banner("Computes the randomized ball decomposition of the given graph")
+      val radius = opt[Int](default = Some(1), descr="the radius of the balls")
+      val probability = opt[Double](required = true,
+        descr="the probability to select a node as ball center")
     }
 
     val hyperAnf = new Subcommand("hyper-anf") with CommonOptions {
