@@ -42,6 +42,8 @@ object RandomizedBallDecomposition extends Timed {
 
   type TaggedGraph = RDD[(NodeId, NodeTag)]
 
+  type Vote = (Boolean, NodeId, Cardinality)
+
   // --------------------------------------------------------------------------
   // Map and reduce functions
 
@@ -54,18 +56,18 @@ object RandomizedBallDecomposition extends Timed {
     (ballA.distinct ++ ballB.distinct).distinct
 
   def vote(data: (NodeId, NodeTag))
-  : TraversableOnce[(NodeId, (Boolean, Cardinality))] = data match {
-    case (_, (Right(_), _)) => Seq() // Already colored
+  : TraversableOnce[(NodeId, Vote)] = data match {
+    case (_, (Right(_), _)) => Seq() // Already colored, don't vote
     case (_, (Left(NonVoting), _)) => Seq()
     case (_, (Left(Candidate), _)) => throw new IllegalArgumentException(
       "Candidates cannot participate to voting step")
     case (node, (Left(Uncolored), ball)) => {
       val card = ball.size
-      ball filter { _ != node } map { (_,(true,card)) }
+      ball filter { _ != node } map { (_,(false,node,card)) }
     }
   }
 
-  def markCandidate(data: (NodeId, (NodeTag, Option[Seq[(Boolean, Cardinality)]])))
+  def markCandidate(data: (NodeId, (NodeTag, Option[Seq[Vote]])))
   : (NodeId, NodeTag) = data match {
     case (node, ((color@Right(_), ball), _)) => (node, (color, ball))
     case (node, ((Left(NonVoting), ball), _)) => (node, (Left(NonVoting), ball))
@@ -73,7 +75,9 @@ object RandomizedBallDecomposition extends Timed {
     case (node, ((Left(Uncolored), ball), None)) => (node, (Left(Candidate), ball))
     case (node, ((Left(Uncolored), ball), Some(votes))) => {
       val card = ball.size
-      val validVotes = votes filter { case (v,c) => c > card} map { case (v,c) => v }
+      val validVotes = votes filter { case (v,n,c) =>
+        gt((n,c),(node,card))
+      } map { case (v,n,c) => v }
       val vote = (true +: validVotes) reduce { _ && _ }
       if(vote)
         (node, (Left(Candidate), ball))
@@ -153,10 +157,17 @@ object RandomizedBallDecomposition extends Timed {
       val votes = tGraph.flatMap(vote).groupByKey()
       tGraph = tGraph.leftOuterJoin(votes).map(markCandidate)
 
+      val candidates = tGraph.filter{ data => data match {
+        case (_, (Left(Candidate), _)) => true
+        case _ => false
+      }} count()
+      logger debug ("Candidates are: {}", candidates)
+
       val newColors = tGraph.flatMap(colorDominated).reduceByKey(max)
       tGraph = tGraph.leftOuterJoin(newColors).map(applyColors)
 
       uncolored = countUncoloredCenters(tGraph)
+      logger debug ("Uncolored after iteration: {}", uncolored)
     }
 
     // color nodes still uncolored with their own ID and extract the colors
