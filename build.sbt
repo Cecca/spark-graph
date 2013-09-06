@@ -37,8 +37,6 @@ mainClass in assembly := Some("it.unipd.dei.graph.Tool")
 
 test in assembly := {} // skip tests
 
-assembleArtifact in packageScala := false
-
 // directly from the sbt-assembly documentation
 mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>  {
     case PathList("javax", "servlet", xs @ _*)         => MergeStrategy.first
