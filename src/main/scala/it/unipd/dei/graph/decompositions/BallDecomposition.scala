@@ -20,8 +20,11 @@ package it.unipd.dei.graph.decompositions
 import spark.SparkContext._
 import spark.RDD
 import it.unipd.dei.graph._
+import org.slf4j.LoggerFactory
 
 object BallDecomposition extends Timed {
+
+  val logger = LoggerFactory getLogger "BallDecomposition"
 
   val verbose = false
 
@@ -215,7 +218,13 @@ object BallDecomposition extends Timed {
 
     val colors = colorGraph(balls)
 
-    relabelArcs(graph, colors)
+    val relabeled = relabelArcs(graph, colors)
+
+    // force evaluation by printing
+    val numNodes = relabeled.count()
+    logger info ("Quotient cardinality: {}", numNodes)
+
+    relabeled
   }
 
 }

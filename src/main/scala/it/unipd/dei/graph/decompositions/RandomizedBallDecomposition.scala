@@ -45,6 +45,14 @@ object RandomizedBallDecomposition extends Timed {
   // --------------------------------------------------------------------------
   // Map and reduce functions
 
+  def sendBalls(data: (NodeId, (Neighbourhood, Ball))) = data match {
+    case (nodeId, (neigh, ball)) =>
+      neigh.map((_,ball)) :+ (nodeId, ball)
+  }
+
+  def merge(ballA: Ball, ballB: Ball) =
+    (ballA.distinct ++ ballB.distinct).distinct
+
   def vote(data: (NodeId, NodeTag))
   : TraversableOnce[(NodeId, (Boolean, Cardinality))] = data match {
     case (_, (Right(_), _)) => Seq() // Already colored
@@ -74,9 +82,56 @@ object RandomizedBallDecomposition extends Timed {
     }
   }
 
+  def colorDominated(data: (NodeId, NodeTag))
+  : TraversableOnce[(NodeId, (Color, Cardinality))] = data match {
+    case (node, (Left(Candidate), ball)) => {
+      val card = ball.size
+      ball map { (_,(node, card)) }
+    }
+    case _ => Seq()
+  }
+
+  def applyColors(data: (NodeId, (NodeTag, Option[(Color,Cardinality)])))
+  : (NodeId, NodeTag) = data match {
+    case (node, ((color@Right(_), ball), _)) => (node, (color, ball))
+    case (node, ((status, ball), newColor)) =>
+      newColor map { case (color, _) =>
+        (node, (Right(color), ball))
+      } getOrElse {
+        (node, (status, ball))
+      }
+  }
+
+  def colorRemaining(data: (NodeId, NodeTag)): (NodeId, NodeTag) = data match  {
+    case (node, (Left(_), ball)) => (node, (Right(node), ball))
+    case alreadyColored => alreadyColored
+  }
+
+  def extractColor(data: (NodeId, NodeTag)) : (NodeId, Color) = data match {
+    case (node, (Right(color), _)) => (node, color)
+    case _ => throw new IllegalArgumentException(
+      "All nodes should be colored at this point")
+  }
 
   // --------------------------------------------------------------------------
   // Function on RDDs
+
+  def computeBalls(graph: RDD[(NodeId,Neighbourhood)], radius: Int)
+  : RDD[(NodeId, Ball)] = timed("Balls computation") {
+
+    var balls = graph.map(data => data) // simply copy the graph
+
+    if ( radius == 1 ) {
+      balls = balls.map({ case (nodeId, neigh) => (nodeId, neigh :+ nodeId) })
+    } else {
+      for(i <- 1 until radius) {
+        val augmentedGraph = graph.join(balls)
+        balls = augmentedGraph.flatMap(sendBalls).reduceByKey(merge)
+      }
+    }
+
+    return balls
+  }
 
   def countUncoloredCenters(taggedGraph: TaggedGraph): Long =
     taggedGraph filter { data => data match {
@@ -89,18 +144,41 @@ object RandomizedBallDecomposition extends Timed {
 
     var tGraph = taggedGraph
 
-    var uncolored = countUncoloredCenters(taggedGraph)
+    var uncolored = countUncoloredCenters(tGraph)
 
     while(uncolored > 0) {
       logger debug ("Uncolored ball centers: {}", uncolored)
 
-      val votes = taggedGraph.flatMap(vote).groupByKey()
-      tGraph = taggedGraph.leftOuterJoin(votes).map(markCandidate)
+      // Select candidates
+      val votes = tGraph.flatMap(vote).groupByKey()
+      tGraph = tGraph.leftOuterJoin(votes).map(markCandidate)
+
+      val newColors = tGraph.flatMap(colorDominated).reduceByKey(max)
+      tGraph = tGraph.leftOuterJoin(newColors).map(applyColors)
 
       uncolored = countUncoloredCenters(tGraph)
     }
 
-    null
+    // color nodes still uncolored with their own ID and extract the colors
+    tGraph.map(colorRemaining).map(extractColor)
+  }
+
+  def relabelArcs(graph: RDD[(NodeId,Neighbourhood)], colors: RDD[(NodeId, Color)])
+  : RDD[(NodeId,Neighbourhood)] = timed("Relabeling") {
+
+    var edges: RDD[(NodeId,NodeId)] =
+      graph.flatMap { case (src, neighs) => neighs map { (src,_) } }
+
+    // replace sources with their color
+    edges = edges.join(colors)
+      .map{ case (src, (dst, srcColor)) => (dst, srcColor) }
+
+    // replace destinations with their colors
+    edges = edges.join(colors)
+      .map{ case (dst, (srcColor, dstColor)) => (srcColor, dstColor) }
+
+    // now revert to an adjacency list representation
+    edges.groupByKey().map{case (node, neighs) => (node, neighs.distinct.toArray)}
   }
 
   def randomizedBallDecomposition( graph: RDD[(NodeId, Neighbourhood)],
@@ -108,7 +186,24 @@ object RandomizedBallDecomposition extends Timed {
                                    centerProbability: Broadcast[Double])
   : RDD[(NodeId, Neighbourhood)] = timed("Randomized ball decomposition") {
 
-    null
+    val balls = computeBalls(graph, radius)
+
+    val taggedGraph: TaggedGraph = balls.map { case (node, ball) =>
+      if(new Random().nextDouble() < centerProbability.value)
+        (node, (Left(Uncolored), ball))
+      else
+        (node, (Left(NonVoting), ball))
+    }
+
+    val colors = colorGraph(taggedGraph)
+
+    val relabeled = relabelArcs(graph, colors)
+
+    // force evaluation by printing
+    val numNodes = relabeled.count()
+    logger info ("Quotient cardinality: {}", numNodes)
+
+    relabeled
   }
 
 }
