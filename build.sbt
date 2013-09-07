@@ -6,6 +6,8 @@ version := "0.1.0"
 
 scalaVersion := "2.9.3"
 
+scalacOptions += "-optimise"
+
 // parallel execution of tests is disabled since it causes problems with
 // multiple SparkContexts
 parallelExecution in Test := false
