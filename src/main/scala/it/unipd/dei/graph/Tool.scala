@@ -53,7 +53,8 @@ object Tool extends TextInputConverter with Timed with KryoSerialization {
         val sc = new SparkContext(conf.ballDec.master(), "Ball Decomposition")
 
         logger info "Loading dataset"
-        val graph = sc.textFile(conf.ballDec.input()).map(convertAdj).cache()
+        val graph = sc.textFile(conf.ballDec.input(), conf.ballDec.splits())
+                      .map(convertAdj).cache()
 
         logger info "Computing ball decomposition"
         val quotient = ballDecomposition(graph, conf.ballDec.radius())
@@ -71,7 +72,8 @@ object Tool extends TextInputConverter with Timed with KryoSerialization {
         val sc = new SparkContext(conf.rndBallDec.master(), "Ball Decomposition")
 
         logger info "Loading dataset"
-        val graph = sc.textFile(conf.rndBallDec.input()).map(convertAdj).cache()
+        val graph = sc.textFile(conf.rndBallDec.input(), conf.rndBallDec.splits())
+                      .map(convertAdj).cache()
 
         logger info "Computing randomized ball decomposition"
         val prob = sc.broadcast(conf.rndBallDec.probability())
@@ -93,7 +95,8 @@ object Tool extends TextInputConverter with Timed with KryoSerialization {
         val sc = new SparkContext(conf.simpleRndBallDec.master(), "Ball Decomposition")
 
         logger info "Loading dataset"
-        val graph = sc.textFile(conf.simpleRndBallDec.input()).map(convertAdj).cache()
+        val graph = sc.textFile(conf.simpleRndBallDec.input(), conf.simpleRndBallDec.splits())
+                      .map(convertAdj).cache()
 
         logger info "Computing randomized ball decomposition"
         val prob = sc.broadcast(conf.simpleRndBallDec.probability())
