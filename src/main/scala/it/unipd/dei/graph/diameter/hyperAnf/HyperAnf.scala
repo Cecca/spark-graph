@@ -41,7 +41,8 @@ object HyperAnf extends TextInputConverter with Timed {
                 input: String,
                 numBits: Int,
                 maxIter: Int,
-                seed: Long = System.nanoTime()) // seed is here for testing
+                minSplits: Int,
+                seed: Long = System.nanoTime())// seed is here for testing
   : NeighbourhoodFunction = {
 
     val graph: RDD[(NodeId, Neighbourhood)] =

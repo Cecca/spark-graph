@@ -120,7 +120,8 @@ object Tool extends TextInputConverter with Timed with KryoSerialization {
         logger info "Computing neighbourhood function"
         val nf = timed("hyperANF") {
           hyperAnf( sc, conf.hyperAnf.input(),
-                    conf.hyperAnf.numbits(), conf.hyperAnf.maxiter())
+                    conf.hyperAnf.numbits(), conf.hyperAnf.maxiter(),
+                    conf.hyperAnf.splits())
         }
         nf.zipWithIndex.foreach { case (nfElem, idx) =>
           logger info ("N(%d) = %f".format(idx, nfElem))
@@ -182,7 +183,7 @@ object Tool extends TextInputConverter with Timed with KryoSerialization {
   trait MasterOptions extends ScallopConf {
     val master = opt[String](default = Some("local"),
       descr="the spark master")
-    val splits = opt[Int](default = Some(2),
+    val splits = opt[Int](default = Some(2), // this is the default of Spark
       descr="the default number of min splits")
   }
 
