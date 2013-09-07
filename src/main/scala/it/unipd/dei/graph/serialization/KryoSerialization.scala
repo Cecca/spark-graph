@@ -35,10 +35,16 @@ class GraphKryoRegistrator extends spark.KryoRegistrator {
 
   override def registerClasses(kryo: Kryo) {
     kryo.register(classOf[Int])
+    kryo.register(classOf[Byte])
+    kryo.register(classOf[Long])
+    kryo.register(classOf[Double])
     kryo.register(classOf[Boolean])
     kryo.register(classOf[Seq[Int]])
     kryo.register(classOf[(Int,Int)])
     kryo.register(classOf[HyperLogLogCounter])
+    kryo.register(classOf[Array[Int]])
+    kryo.register(classOf[Array[Byte]])
+    kryo.register(classOf[Array[(Int,Int)]])
   }
 
 }
