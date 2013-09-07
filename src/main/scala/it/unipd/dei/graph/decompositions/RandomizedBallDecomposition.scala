@@ -157,12 +157,6 @@ object RandomizedBallDecomposition extends Timed {
       val votes = tGraph.flatMap(vote).groupByKey()
       tGraph = tGraph.leftOuterJoin(votes).map(markCandidate)
 
-      val candidates = tGraph.filter{ data => data match {
-        case (_, (Left(Candidate), _)) => true
-        case _ => false
-      }} count()
-      logger debug ("Candidates are: {}", candidates)
-
       val newColors = tGraph.flatMap(colorDominated).reduceByKey(max)
       tGraph = tGraph.leftOuterJoin(newColors).map(applyColors)
 
