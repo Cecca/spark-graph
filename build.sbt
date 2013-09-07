@@ -46,6 +46,7 @@ mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>  {
     case PathList(ps @ _*) if ps.last endsWith ".class" => MergeStrategy.first
     case PathList(ps @ _*) if ps.last endsWith ".xml" => MergeStrategy.first
     case PathList(ps @ _*) if ps.last endsWith ".html" => MergeStrategy.first
+    case PathList(ps @ _*) if ps.last endsWith "log4j.properties" => MergeStrategy.first
     case "application.conf" => MergeStrategy.concat
     case PathList(ps @ _*) if ps.last endsWith ".properties" => MergeStrategy.concat
     case "unwanted.txt"     => MergeStrategy.discard
