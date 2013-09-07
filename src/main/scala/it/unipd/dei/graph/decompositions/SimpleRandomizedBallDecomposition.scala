@@ -99,8 +99,6 @@ object SimpleRandomizedBallDecomposition extends Timed {
     val newColors = taggedGraph.flatMap(colorDominated).reduceByKey(max)
     taggedGraph.leftOuterJoin(newColors)
                .map(applyColors)
-
-    null
   }
 
   def relabelArcs(graph: RDD[(NodeId,Neighbourhood)], colors: RDD[(NodeId, Color)])
@@ -124,7 +122,7 @@ object SimpleRandomizedBallDecomposition extends Timed {
   def simpleRandomizedBallDecomposition( graph: RDD[(NodeId, Neighbourhood)],
                                    radius: Int,
                                    centerProbability: Broadcast[Double])
-  : RDD[(NodeId, Neighbourhood)] = timed("Randomized ball decomposition") {
+  : RDD[(NodeId, Neighbourhood)] = timed("Simple randomized ball decomposition") {
 
     // compute balls
     val balls = computeBalls(graph, radius)
