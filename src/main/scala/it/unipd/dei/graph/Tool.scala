@@ -49,7 +49,10 @@ object Tool extends TextInputConverter with Timed with KryoSerialization {
 
         logger info ("Quotient cardinality: {}", quotient.count())
 
-        quotient.saveAsTextFile(conf.ballDec.output())
+        conf.ballDec.output.get match {
+          case Some(out) => quotient.saveAsTextFile(out)
+          case _ => logger info "Not writing output"
+        }
       }
 
       // Randomized ball Decomposition ----------------------------------------
@@ -68,7 +71,10 @@ object Tool extends TextInputConverter with Timed with KryoSerialization {
 
         logger info ("Quotient cardinality: {}", quotient.count())
 
-        quotient.saveAsTextFile(conf.rndBallDec.output())
+        conf.rndBallDec.output.get match {
+          case Some(out) => quotient.saveAsTextFile(out)
+          case _ => logger info "Not writing output"
+        }
       }
 
       // HyperANF -------------------------------------------------------------
@@ -131,8 +137,8 @@ object Tool extends TextInputConverter with Timed with KryoSerialization {
       descr="the spark master")
     val input = opt[String](required = true,
       descr="the input graph")
-    val output = opt[String](default = Some("output"),
-      descr="the output file")
+    val output = opt[String](
+      descr="the output file. If not given, no output is written")
   }
 
 }
