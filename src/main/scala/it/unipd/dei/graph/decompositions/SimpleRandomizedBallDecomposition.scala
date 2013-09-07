@@ -121,7 +121,7 @@ object SimpleRandomizedBallDecomposition extends Timed {
     edges.groupByKey().map{case (node, neighs) => (node, neighs.distinct.toArray)}
   }
 
-  def randomizedBallDecomposition( graph: RDD[(NodeId, Neighbourhood)],
+  def simpleRandomizedBallDecomposition( graph: RDD[(NodeId, Neighbourhood)],
                                    radius: Int,
                                    centerProbability: Broadcast[Double])
   : RDD[(NodeId, Neighbourhood)] = timed("Randomized ball decomposition") {

@@ -24,6 +24,7 @@ import it.unipd.dei.graph.serialization.KryoSerialization
 import spark.SparkContext
 import org.slf4j.LoggerFactory
 import it.unipd.dei.graph.decompositions.RandomizedBallDecomposition._
+import it.unipd.dei.graph.decompositions.SimpleRandomizedBallDecomposition._
 
 /**
  * Main entry point for the entire application
@@ -77,6 +78,28 @@ object Tool extends TextInputConverter with Timed with KryoSerialization {
         }
       }
 
+      // Simple ball Decomposition ----------------------------------------
+      case Some(conf.simpleRndBallDec) => {
+        val sc = new SparkContext(conf.simpleRndBallDec.master(), "Ball Decomposition")
+
+        logger info "Loading dataset"
+        val graph = sc.textFile(conf.simpleRndBallDec.input()).map(convertAdj).cache()
+
+        logger info "Computing randomized ball decomposition"
+        val prob = sc.broadcast(conf.simpleRndBallDec.probability())
+        val quotient = simpleRandomizedBallDecomposition(
+          graph,
+          conf.simpleRndBallDec.radius(),
+          prob)
+
+        logger info ("Quotient cardinality: {}", quotient.count())
+
+        conf.simpleRndBallDec.output.get match {
+          case Some(out) => quotient.saveAsTextFile(out)
+          case _ => logger info "Not writing output"
+        }
+      }
+
       // HyperANF -------------------------------------------------------------
       case Some(conf.hyperAnf) => {
         val sc = new SparkContext(conf.hyperAnf.master(), "HyperANF")
@@ -115,6 +138,13 @@ object Tool extends TextInputConverter with Timed with KryoSerialization {
 
     val rndBallDec = new Subcommand("rnd-ball-dec") with CommonOptions {
       banner("Computes the randomized ball decomposition of the given graph")
+      val radius = opt[Int](default = Some(1), descr="the radius of the balls")
+      val probability = opt[Double](required = true,
+        descr="the probability to select a node as ball center")
+    }
+
+    val simpleRndBallDec = new Subcommand("rnd-ball-dec-simple") with CommonOptions {
+      banner("Computes the simple randomized ball decomposition of the given graph")
       val radius = opt[Int](default = Some(1), descr="the radius of the balls")
       val probability = opt[Double](required = true,
         descr="the probability to select a node as ball center")
