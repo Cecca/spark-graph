@@ -19,6 +19,7 @@ package it.unipd.dei.graph.serialization
 
 import com.esotericsoftware.kryo.Kryo
 import it.unipd.dei.graph.diameter.hyperAnf.HyperLogLogCounter
+import it.unipd.dei.graph.decompositions.RandomizedBallDecomposition.NodeTag
 
 /**
  * Trait that enables kryo serialization and registers some classes
@@ -45,6 +46,9 @@ class GraphKryoRegistrator extends spark.KryoRegistrator {
     kryo.register(classOf[Array[Int]])
     kryo.register(classOf[Array[Byte]])
     kryo.register(classOf[Array[(Int,Int)]])
+    kryo.register(classOf[Either[Byte,Int]])
+    kryo.register(classOf[NodeTag])
+    kryo.register(classOf[(Boolean, Int, Int)])
   }
 
 }
