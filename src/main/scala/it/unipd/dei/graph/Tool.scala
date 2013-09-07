@@ -45,7 +45,7 @@ object Tool extends TextInputConverter with Timed with KryoSerialization {
           """
             |Default parallelism: %d
             |Default min splits: %d
-          """.stripMargin.format(sc.defaultParallelism, sc.defaultMinSplits))
+          """.stripMargin.format(sc.defaultParallelism, conf.info.splits()))
       }
 
       // Ball Decomposition ---------------------------------------------------
@@ -141,32 +141,30 @@ object Tool extends TextInputConverter with Timed with KryoSerialization {
     banner("Usage: spark-graph [ball-dec|hyper-anf] -i input [options]")
     footer("\nReport issues at https://github.com/Cecca/spark-graph/issues")
 
-    val info = new Subcommand("info") {
+    val info = new Subcommand("info") with MasterOptions {
       banner("info on the system the program is running on")
-      val master = opt[String](default = Some("local"),
-        descr="The master the program runs on.")
     }
 
-    val ballDec = new Subcommand("ball-dec") with CommonOptions {
+    val ballDec = new Subcommand("ball-dec") with MasterOptions with IOOptions {
       banner("Computes the ball decomposition of the given graph")
       val radius = opt[Int](default = Some(1), descr="the radius of the balls")
     }
 
-    val rndBallDec = new Subcommand("rnd-ball-dec") with CommonOptions {
+    val rndBallDec = new Subcommand("rnd-ball-dec") with MasterOptions with IOOptions {
       banner("Computes the randomized ball decomposition of the given graph")
       val radius = opt[Int](default = Some(1), descr="the radius of the balls")
       val probability = opt[Double](required = true,
         descr="the probability to select a node as ball center")
     }
 
-    val simpleRndBallDec = new Subcommand("rnd-ball-dec-simple") with CommonOptions {
+    val simpleRndBallDec = new Subcommand("rnd-ball-dec-simple") with MasterOptions with IOOptions {
       banner("Computes the simple randomized ball decomposition of the given graph")
       val radius = opt[Int](default = Some(1), descr="the radius of the balls")
       val probability = opt[Double](required = true,
         descr="the probability to select a node as ball center")
     }
 
-    val hyperAnf = new Subcommand("hyper-anf") with CommonOptions {
+    val hyperAnf = new Subcommand("hyper-anf") with MasterOptions with IOOptions {
       banner("Computes the effective diameter at alpha of the given graph")
       val numbits = opt[Int](default = Some(4),
         descr="the number of bits for each counter")
@@ -178,9 +176,14 @@ object Tool extends TextInputConverter with Timed with KryoSerialization {
 
   }
 
-  trait CommonOptions extends ScallopConf {
+  trait MasterOptions extends ScallopConf {
     val master = opt[String](default = Some("local"),
       descr="the spark master")
+    val splits = opt[Int](default = Some(2),
+      descr="the default number of min splits")
+  }
+
+  trait IOOptions extends ScallopConf {
     val input = opt[String](required = true,
       descr="the input graph")
     val output = opt[String](
