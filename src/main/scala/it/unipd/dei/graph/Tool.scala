@@ -38,6 +38,16 @@ object Tool extends TextInputConverter with Timed with KryoSerialization {
 
     conf.subcommand match {
 
+      // Info -----------------------------------------------------------------
+      case Some(conf.info) => {
+        val sc = new SparkContext(conf.info.master(), "Info")
+        println(
+          """
+            |Default parallelism: %d
+            |Default min splits: %d
+          """.stripMargin.format(sc.defaultParallelism, sc.defaultMinSplits))
+      }
+
       // Ball Decomposition ---------------------------------------------------
       case Some(conf.ballDec) => {
         val sc = new SparkContext(conf.ballDec.master(), "Ball Decomposition")
@@ -130,6 +140,12 @@ object Tool extends TextInputConverter with Timed with KryoSerialization {
     version("spark-graph 0.1.0")
     banner("Usage: spark-graph [ball-dec|hyper-anf] -i input [options]")
     footer("\nReport issues at https://github.com/Cecca/spark-graph/issues")
+
+    val info = new Subcommand("info") {
+      banner("info on the system the program is running on")
+      val master = opt[String](default = Some("local"),
+        descr="The master the program runs on.")
+    }
 
     val ballDec = new Subcommand("ball-dec") with CommonOptions {
       banner("Computes the ball decomposition of the given graph")
