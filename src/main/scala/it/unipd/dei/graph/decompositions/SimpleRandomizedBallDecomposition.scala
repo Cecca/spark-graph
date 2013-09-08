@@ -25,7 +25,7 @@ import scala.Left
 import spark.broadcast.Broadcast
 import scala.util.Random
 
-object SimpleRandomizedBallDecomposition extends Timed {
+object SimpleRandomizedBallDecomposition extends BallComputer with Timed {
 
   private val logger = LoggerFactory.getLogger(
     "SimpleRandomizedBallDecomposition")
@@ -43,14 +43,6 @@ object SimpleRandomizedBallDecomposition extends Timed {
 
   // --------------------------------------------------------------------------
   // Map and reduce functions
-
-  def sendBalls(data: (NodeId, (Neighbourhood, Ball))) = data match {
-    case (nodeId, (neigh, ball)) =>
-      neigh.map((_,ball)) :+ (nodeId, ball)
-  }
-
-  def merge(ballA: Ball, ballB: Ball) =
-    (ballA.distinct ++ ballB.distinct).distinct
 
   def colorDominated(data: (NodeId, NodeTag))
   : TraversableOnce[(NodeId, (Color, Cardinality))] = data match {
@@ -75,23 +67,6 @@ object SimpleRandomizedBallDecomposition extends Timed {
 
   // --------------------------------------------------------------------------
   // Function on RDDs
-
-  def computeBalls(graph: RDD[(NodeId,Neighbourhood)], radius: Int)
-  : RDD[(NodeId, Ball)] = timed("Balls computation") {
-
-    var balls = graph.map(data => data) // simply copy the graph
-
-    if ( radius == 1 ) {
-      balls = balls.map({ case (nodeId, neigh) => (nodeId, neigh :+ nodeId) })
-    } else {
-      for(i <- 1 until radius) {
-        val augmentedGraph = graph.join(balls)
-        balls = augmentedGraph.flatMap(sendBalls).reduceByKey(merge)
-      }
-    }
-
-    return balls
-  }
 
   def colorGraph(taggedGraph: TaggedGraph)
   : RDD[(NodeId, Color)] = {

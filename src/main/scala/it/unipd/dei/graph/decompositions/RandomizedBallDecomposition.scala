@@ -25,7 +25,7 @@ import spark.broadcast.Broadcast
 import scala.util.Random
 import org.slf4j.LoggerFactory
 
-object RandomizedBallDecomposition extends Timed {
+object RandomizedBallDecomposition extends BallComputer with Timed {
 
   private val logger = LoggerFactory.getLogger(
     "RandomizedBallDecomposition")
@@ -46,14 +46,6 @@ object RandomizedBallDecomposition extends Timed {
 
   // --------------------------------------------------------------------------
   // Map and reduce functions
-
-  def sendBalls(data: (NodeId, (Neighbourhood, Ball))) = data match {
-    case (nodeId, (neigh, ball)) =>
-      neigh.map((_,ball)) :+ (nodeId, ball)
-  }
-
-  def merge(ballA: Ball, ballB: Ball) =
-    (ballA.distinct ++ ballB.distinct).distinct
 
   def vote(data: (NodeId, NodeTag))
   : TraversableOnce[(NodeId, Vote)] = data match {
@@ -119,23 +111,6 @@ object RandomizedBallDecomposition extends Timed {
 
   // --------------------------------------------------------------------------
   // Function on RDDs
-
-  def computeBalls(graph: RDD[(NodeId,Neighbourhood)], radius: Int)
-  : RDD[(NodeId, Ball)] = timed("Balls computation") {
-
-    var balls = graph.map(data => data) // simply copy the graph
-
-    if ( radius == 1 ) {
-      balls = balls.map({ case (nodeId, neigh) => (nodeId, neigh :+ nodeId) })
-    } else {
-      for(i <- 1 until radius) {
-        val augmentedGraph = graph.join(balls)
-        balls = augmentedGraph.flatMap(sendBalls).reduceByKey(merge)
-      }
-    }
-
-    return balls
-  }
 
   def countUncoloredCenters(taggedGraph: TaggedGraph): Long =
     taggedGraph filter { data => data match {

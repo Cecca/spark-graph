@@ -22,7 +22,7 @@ import spark.RDD
 import it.unipd.dei.graph._
 import org.slf4j.LoggerFactory
 
-object BallDecomposition extends Timed {
+object BallDecomposition extends BallComputer with Timed {
 
   val logger = LoggerFactory getLogger "BallDecomposition"
 
@@ -47,14 +47,6 @@ object BallDecomposition extends Timed {
     val data = line.split(" +")
     (data.head.toInt, data.tail.map(_.toInt))
   }
-
-  def sendBalls(data: (NodeId, (Neighbourhood, Ball))) = data match {
-    case (nodeId, (neigh, ball)) =>
-      neigh.map((_,ball)) :+ (nodeId, ball)
-  }
-
-  def merge(ballA: Ball, ballB: Ball) =
-    (ballA.distinct ++ ballB.distinct).distinct
 
   /**
    * Tells if `cardA` is greater than `cardB`. Breaks ties on the cardinality
@@ -139,23 +131,6 @@ object BallDecomposition extends Timed {
 
   // --------------------------------------------------------------------------
   // Functions on RDDs
-
-  def computeBalls(graph: RDD[(NodeId,Neighbourhood)], radius: Int)
-  : RDD[(NodeId, Ball)] = timed("Balls computation") {
-
-    var balls = graph.map(data => data) // simply copy the graph
-
-    if ( radius == 1 ) {
-      balls = balls.map({ case (nodeId, neigh) => (nodeId, neigh :+ nodeId) })
-    } else {
-      for(i <- 1 until radius) {
-        val augmentedGraph = graph.join(balls)
-        balls = augmentedGraph.flatMap(sendBalls).reduceByKey(merge)
-      }
-    }
-
-    return balls
-  }
 
   def countUncolored(taggedGraph: TaggedGraph) =
     taggedGraph filter { case (_,(tag,_,_)) => tag != Colored } count()
