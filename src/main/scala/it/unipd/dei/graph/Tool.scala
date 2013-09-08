@@ -19,6 +19,7 @@ package it.unipd.dei.graph
 
 import org.rogach.scallop.{Subcommand, ScallopConf}
 import it.unipd.dei.graph.decompositions.BallDecomposition._
+import it.unipd.dei.graph.decompositions.FloodBallDecomposition._
 import it.unipd.dei.graph.diameter.hyperAnf.HyperAnf._
 import it.unipd.dei.graph.serialization.KryoSerialization
 import spark.SparkContext
@@ -62,6 +63,27 @@ object Tool extends TextInputConverter with Timed with KryoSerialization {
         logger info ("Quotient cardinality: {}", quotient.count())
 
         conf.ballDec.output.get match {
+          case Some(out) => quotient.saveAsTextFile(out)
+          case _ => logger info "Not writing output"
+        }
+      }
+
+      // Flood ball Decomposition ---------------------------------------------
+      case Some(conf.floodBallDec) => {
+        val sc = new SparkContext(conf.floodBallDec.master(), "Ball Decomposition")
+
+        logger info "Loading dataset"
+        val graph = sc.textFile(conf.floodBallDec.input(), conf.floodBallDec.splits())
+          .map(convertAdj).cache()
+
+        logger info "Computing flood ball decomposition"
+        val prob = sc.broadcast(conf.rndBallDec.probability())
+        val quotient = floodBallDecomposition(
+          graph, conf.floodBallDec.radius(), prob)
+
+        logger info ("Quotient cardinality: {}", quotient.count())
+
+        conf.floodBallDec.output.get match {
           case Some(out) => quotient.saveAsTextFile(out)
           case _ => logger info "Not writing output"
         }
@@ -163,6 +185,13 @@ object Tool extends TextInputConverter with Timed with KryoSerialization {
 
     val simpleRndBallDec = new Subcommand("rnd-ball-dec-simple") with MasterOptions with IOOptions {
       banner("Computes the simple randomized ball decomposition of the given graph")
+      val radius = opt[Int](default = Some(1), descr="the radius of the balls")
+      val probability = opt[Double](required = true,
+        descr="the probability to select a node as ball center")
+    }
+
+    val floodBallDec = new Subcommand("flood-ball-dec") with MasterOptions with IOOptions {
+      banner("Computes the flood ball decomposition of the given graph")
       val radius = opt[Int](default = Some(1), descr="the radius of the balls")
       val probability = opt[Double](required = true,
         descr="the probability to select a node as ball center")

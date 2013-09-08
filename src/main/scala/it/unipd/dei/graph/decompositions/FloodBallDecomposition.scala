@@ -48,7 +48,7 @@ object FloodBallDecomposition extends ArcRelabeler with Timed {
   : TraversableOnce[(NodeId, (Color, Cardinality))] = data match {
     case (node, (Right(color), neighs)) => neighs map { (_,(color, neighs.size)) }
     case (node, (Left(Center), neighs)) => neighs map { (_,(node, neighs.size)) }
-    case (_, (Left(NonCenter), _)) => Array()
+    case (_, (Left(NonCenter), _)) => Seq()
   }
 
   /**
