@@ -102,7 +102,7 @@ object SimpleRandomizedBallDecomposition extends Timed {
   }
 
   def relabelArcs(graph: RDD[(NodeId,Neighbourhood)], colors: RDD[(NodeId, Color)])
-  : RDD[(NodeId,Neighbourhood)] = timed("Relabeling") {
+  : RDD[(NodeId,Neighbourhood)] = {
 
     var edges: RDD[(NodeId,NodeId)] =
       graph.flatMap { case (src, neighs) => neighs map { (src,_) } }
@@ -129,7 +129,9 @@ object SimpleRandomizedBallDecomposition extends Timed {
 
     // select node centers
     val taggedGraph: TaggedGraph = balls.map { case (node, ball) =>
-      if(new Random().nextDouble() < centerProbability.value)
+      val size = ball.size
+      val score = (new Random().nextDouble() * size) / size
+      if(score < centerProbability.value)
         (node, (Left(Center), ball))
       else
         (node, (Left(NotCenter), ball))
