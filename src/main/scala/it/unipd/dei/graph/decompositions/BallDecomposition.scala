@@ -22,7 +22,7 @@ import spark.RDD
 import it.unipd.dei.graph._
 import org.slf4j.LoggerFactory
 
-object BallDecomposition extends BallComputer with Timed {
+object BallDecomposition extends BallComputer with ArcRelabeler with Timed {
 
   val logger = LoggerFactory getLogger "BallDecomposition"
 
@@ -168,24 +168,6 @@ object BallDecomposition extends BallComputer with Timed {
     }
 
     taggedGraph.map(extractColor)
-  }
-
-  def relabelArcs(graph: RDD[(NodeId,Neighbourhood)], colors: RDD[(NodeId, Color)])
-  : RDD[(NodeId,Neighbourhood)] = timed("Relabeling") {
-
-    var edges: RDD[(NodeId,NodeId)] =
-      graph.flatMap { case (src, neighs) => neighs map { (src,_) } }
-
-    // replace sources with their color
-    edges = edges.join(colors)
-      .map{ case (src, (dst, srcColor)) => (dst, srcColor) }
-
-    // replace destinations with their colors
-    edges = edges.join(colors)
-      .map{ case (dst, (srcColor, dstColor)) => (srcColor, dstColor) }
-
-    // now revert to an adjacency list representation
-    edges.groupByKey().map{case (node, neighs) => (node, neighs.distinct.toArray)}
   }
 
   def ballDecomposition(graph: RDD[(NodeId, Neighbourhood)], radius: Int) = timed("Ball decomposition") {

@@ -25,7 +25,9 @@ import scala.Left
 import spark.broadcast.Broadcast
 import scala.util.Random
 
-object SimpleRandomizedBallDecomposition extends BallComputer with Timed {
+object SimpleRandomizedBallDecomposition extends BallComputer
+                                            with ArcRelabeler
+                                            with Timed {
 
   private val logger = LoggerFactory.getLogger(
     "SimpleRandomizedBallDecomposition")
@@ -74,24 +76,6 @@ object SimpleRandomizedBallDecomposition extends BallComputer with Timed {
     val newColors = taggedGraph.flatMap(colorDominated).reduceByKey(max)
     taggedGraph.leftOuterJoin(newColors)
                .map(applyColors)
-  }
-
-  def relabelArcs(graph: RDD[(NodeId,Neighbourhood)], colors: RDD[(NodeId, Color)])
-  : RDD[(NodeId,Neighbourhood)] = {
-
-    var edges: RDD[(NodeId,NodeId)] =
-      graph.flatMap { case (src, neighs) => neighs map { (src,_) } }
-
-    // replace sources with their color
-    edges = edges.join(colors)
-      .map{ case (src, (dst, srcColor)) => (dst, srcColor) }
-
-    // replace destinations with their colors
-    edges = edges.join(colors)
-      .map{ case (dst, (srcColor, dstColor)) => (srcColor, dstColor) }
-
-    // now revert to an adjacency list representation
-    edges.groupByKey().map{case (node, neighs) => (node, neighs.distinct.toArray)}
   }
 
   def simpleRandomizedBallDecomposition( graph: RDD[(NodeId, Neighbourhood)],
