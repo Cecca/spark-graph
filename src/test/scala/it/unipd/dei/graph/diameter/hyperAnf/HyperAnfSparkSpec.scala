@@ -39,14 +39,14 @@ class HyperAnfSparkSpec extends FlatSpec with LocalSparkContext {
 
     val seed = 1234
 
-    val nf1 = hyperAnf(sc, graphFile, 4, 10, seed)
+    val nf1 = hyperAnf(sc, graphFile, 4, 10, 2, seed)
 
     sc.stop()
     clearProperties()
 
     val sc2 = new SparkContext("local[2]", "test")
 
-    val nf2 = hyperAnf(sc2, graphFile, 4, 10, seed)
+    val nf2 = hyperAnf(sc2, graphFile, 4, 10, 2, seed)
 
     sc2.stop()
     clearProperties()
