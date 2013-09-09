@@ -33,12 +33,12 @@ trait TextInputConverter {
    * @return a pair of NodeId and Neighbourhood
    */
   def convertAdj(line: String): (NodeId, Neighbourhood) = {
-    val data = line.split(" +")
+    val data = line.split("\\s+")
     (data.head.toInt, data.tail.map(_.toInt))
   }
 
   def convertEdges(line: String): (NodeId, NodeId) = {
-    val data = line.split(" +")
+    val data = line.split("\\s+")
     assert(data.size != 2)
     (data(0).toInt, data(1).toInt)
   }
