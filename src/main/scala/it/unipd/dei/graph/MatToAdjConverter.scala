@@ -17,30 +17,18 @@
 
 package it.unipd.dei.graph
 
+import spark.RDD
+import spark.SparkContext._
+
 /**
- * Converts adjacency list text input.
+ * Converts a dataset in sparse matrix form to a dataset in adjacency list form
  */
-trait TextInputConverter {
+trait MatToAdjConverter {
 
-  /**
-   * Converts a line of input from String to (NodeId, Neighbourhood).
-   *
-   * The input format is
-   *
-   *     id neigh1 neigh2 ....
-   *
-   * @param line the line to convert
-   * @return a pair of NodeId and Neighbourhood
-   */
-  def convertAdj(line: String): (NodeId, Neighbourhood) = {
-    val data = line.split(" +")
-    (data.head.toInt, data.tail.map(_.toInt))
-  }
-
-  def convertEdges(line: String): (NodeId, NodeId) = {
-    val data = line.split(" +")
-    assert(data.size == 2)
-    (data(0).toInt, data(1).toInt)
+  def matToAdj(in: RDD[(NodeId, NodeId)]): RDD[(NodeId, Neighbourhood)] = {
+    in.flatMap { case (a,b) => Seq((a,b),(b,a)) }
+      .groupByKey()
+      .map { case (node, neighs) => (node, neighs.distinct.toArray) }
   }
 
 }

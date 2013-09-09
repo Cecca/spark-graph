@@ -30,7 +30,7 @@ import it.unipd.dei.graph.decompositions.SimpleRandomizedBallDecomposition._
 /**
  * Main entry point for the entire application
  */
-object Tool extends TextInputConverter with Timed with KryoSerialization {
+object Tool extends TextInputConverter with Timed with KryoSerialization with MatToAdjConverter {
 
   val logger = LoggerFactory.getLogger("spark-graph")
 
@@ -156,6 +156,23 @@ object Tool extends TextInputConverter with Timed with KryoSerialization {
           conf.hyperAnf.alpha(), effDiam))
       }
 
+      // Dataset conversion ---------------------------------------------------
+      case Some(conf.matToAdj) => {
+        conf.matToAdj.output.get.map { out =>
+          val sc = new SparkContext(conf.matToAdj.master(), "Conversion")
+
+          logger info "Converting dataset"
+          val inData = sc.textFile(
+            conf.matToAdj.input(), conf.matToAdj.splits()).map(convertEdges)
+          val converted = timed("Conversion") {
+            matToAdj(inData)
+          }
+          converted.saveAsTextFile(out)
+        } getOrElse {
+          logger error "Output path is required"
+        }
+      }
+
       // Default help printing ------------------------------------------------
       case None => conf.printHelp()
     }
@@ -205,6 +222,10 @@ object Tool extends TextInputConverter with Timed with KryoSerialization {
         descr="the maximum number of iterations")
       val alpha = opt[Double](default = Some(1.0),
         descr="the value we compute the effective diameter at")
+    }
+
+    val matToAdj = new Subcommand("mat-to-adj") with MasterOptions with IOOptions {
+      banner("Converts the given dataset to adjacency list representation.")
     }
 
   }
