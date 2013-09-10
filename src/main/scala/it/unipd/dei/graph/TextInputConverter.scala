@@ -39,7 +39,6 @@ trait TextInputConverter {
 
   def convertEdges(line: String): (NodeId, NodeId) = {
     val data = line.split("\\s+")
-    assert(data.size != 2)
     (data(0).toInt, data(1).toInt)
   }
 

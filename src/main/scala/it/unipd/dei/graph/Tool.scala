@@ -164,10 +164,13 @@ object Tool extends TextInputConverter with Timed with KryoSerialization with Ma
           logger info "Converting dataset"
           val inData = sc.textFile(
             conf.matToAdj.input(), conf.matToAdj.splits()).map(convertEdges)
-          val converted = timed("Conversion") {
-            matToAdj(inData)
+          timed("Conversion") {
+            matToAdj(inData).map { case (node, neighs) =>
+              node.toString + " " + neighs.foldLeft ("") { (str, i) =>
+                str + " " + i
+              }
+            }.saveAsTextFile(out)
           }
-          converted.saveAsTextFile(out)
         } getOrElse {
           logger error "Output path is required"
         }
