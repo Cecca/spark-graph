@@ -128,8 +128,8 @@ object BallDecomposition extends BallComputer with ArcRelabeler with Timed {
 
   def extractColor(data: (NodeId, NodeTag))
   : (NodeId, Color) = data match {
-    case (node, (_, Some(color), _)) => (node, color)
-    case _ => throw new IllegalArgumentException("Cannot extract a color from a None")
+    case (node, (Right(color), _)) => (node, color)
+    case _ => throw new IllegalArgumentException("Cannot extract a color from a Left")
   }
 
   // --------------------------------------------------------------------------
