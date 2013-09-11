@@ -114,14 +114,14 @@ object BallDecomposition extends BallComputer with ArcRelabeler with Timed {
 
   def applyColors(data: (NodeId, (NodeTag, Option[(Color,Cardinality)])))
   : (NodeId, NodeTag) = data match {
-    case (node, ((status, oldColor, ball), maybeNewColor)) =>
+    case (node, ((status, ball), maybeNewColor)) =>
       status match {
-        case Colored => (node, (status, oldColor, ball))
+        case Right(color) => (node, (Right(color), ball))
         case _ =>
           maybeNewColor map { case (color,_) =>
-            (node, (Colored, Some(color), ball))
+            (node, (Right(color), ball))
           } getOrElse {
-            (node, (status, oldColor, ball))
+            (node, (status, ball))
           }
       }
   }
