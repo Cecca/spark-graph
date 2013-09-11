@@ -26,8 +26,6 @@ object BallDecomposition extends BallComputer with ArcRelabeler with Timed {
 
   val logger = LoggerFactory getLogger "BallDecomposition"
 
-  val verbose = false
-
   object UncoloredNodeStatus {
     val Uncolored : Byte = 1
     val Candidate : Byte = 2
@@ -151,8 +149,7 @@ object BallDecomposition extends BallComputer with ArcRelabeler with Timed {
     var uncolored = countUncolored(taggedGraph)
 
     while (uncolored > 0) {
-      if(verbose)
-        println("Uncolored " + uncolored)
+      logger debug ("Uncolored " + uncolored)
 
       // Colored nodes express a vote for all their ball neighbours, candidating them
       // uncolored nodes express a vote saying that the node should not be candidate
