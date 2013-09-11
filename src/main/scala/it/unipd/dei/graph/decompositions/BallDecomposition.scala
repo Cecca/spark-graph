@@ -28,17 +28,18 @@ object BallDecomposition extends BallComputer with ArcRelabeler with Timed {
 
   val verbose = false
 
-  object NodeStatus {
-    val Colored   : Byte = 0
+  object UncoloredNodeStatus {
     val Uncolored : Byte = 1
     val Candidate : Byte = 2
   }
-  type NodeStatus = Byte
-  import NodeStatus._
+  type UncoloredNodeStatus = Byte
+  import UncoloredNodeStatus._
 
-  type NodeTag = (NodeStatus, Option[Color], Ball)
+  type NodeTag = ( Either[UncoloredNodeStatus, Color], Ball )
 
   type TaggedGraph = RDD[(NodeId, NodeTag)]
+
+  type Vote = (Boolean, Cardinality)
 
   // --------------------------------------------------------------------------
   // Map and reduce functions
@@ -73,16 +74,18 @@ object BallDecomposition extends BallComputer with ArcRelabeler with Timed {
         cardB
   }
 
-  def vote(data: (NodeId, NodeTag)) = data match {
-    case (node, (status, color, ball)) => {
-      val v = status match {
-        case Colored => true
-        case Uncolored => false
-        case Candidate => throw new IllegalArgumentException("Candidates can't express a vote")
-      }
+  def vote(data: (NodeId, NodeTag))
+  : TraversableOnce[(NodeId, Vote)]= data match {
+    case (node, (Right(_), ball)) => {
       val card = ball.size
-      ball filter { _ != node } map { (_,(v,card)) } // send vote to all neighbours
+      ball map { (_, (true, card)) }
     }
+    case (node, (Left(Uncolored), ball)) => {
+      val card = ball.size
+      ball map { (_, (false, card)) }
+    }
+    case (_, (Left(Candidate), _)) =>
+      throw new IllegalArgumentException("Candidates can't express a vote")
   }
 
   def markCandidate(data: (NodeId, (NodeTag, Option[Seq[(Boolean, Cardinality)]])))
