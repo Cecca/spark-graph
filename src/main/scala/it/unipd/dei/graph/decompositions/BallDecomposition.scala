@@ -162,11 +162,6 @@ object BallDecomposition extends BallComputer with ArcRelabeler with Timed {
       // if a node has received all positive votes, then it becomes a candidate
       taggedGraph = taggedGraph.leftOuterJoin(votes).map(markCandidate)
 
-      if (verbose) {
-        val candidates = taggedGraph.filter{ case (_,(tag,_,_)) => tag == Candidate } count()
-        println("Candidates " + candidates)
-      }
-
       // each candidate colors its ball neighbours and itself
       val newColors = taggedGraph.flatMap(colorDominated).reduceByKey(max)
       taggedGraph = taggedGraph.leftOuterJoin(newColors).map(applyColors)
