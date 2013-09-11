@@ -105,7 +105,7 @@ object BallDecomposition extends BallComputer with ArcRelabeler with Timed {
 
   def colorDominated(data: (NodeId, NodeTag))
   : TraversableOnce[(NodeId,(Color, Cardinality))] = data match {
-    case (node, (Candidate, color, ball)) => {
+    case (node, (Left(Candidate), ball)) => {
       val card = ball.size
       ball map { (_,(node, card)) }
     }
