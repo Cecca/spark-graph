@@ -90,17 +90,17 @@ object BallDecomposition extends BallComputer with ArcRelabeler with Timed {
 
   def markCandidate(data: (NodeId, (NodeTag, Option[Seq[(Boolean, Cardinality)]])))
   : (NodeId, NodeTag) = data match {
-    case (node, ((Colored, color, ball), _)) => (node, (Colored, color, ball))
-    case (node, ((status, color, ball), Some(votes))) => {
+    case (node, ((color@Right(_), ball), _)) => (node, (color, ball))
+    case (node, ((Left(status), ball), Some(votes))) => {
       val card = ball.size
       val validVotes = votes filter { case (v,c) => c > card} map { case (v,c) => v }
       val vote = (true +: validVotes) reduce { _ && _ }
       if (vote)
-        (node, (Candidate, color, ball))
+        (node, (Left(Candidate), ball))
       else
-        (node, (status, color, ball))
+        (node, (Left(status), ball))
     }
-    case (node, ((status, color, ball), None)) => (node, (status, color, ball))
+    case (node, ((status@Left(_), ball), None)) => (node, (status, ball))
   }
 
   def colorDominated(data: (NodeId, NodeTag))
