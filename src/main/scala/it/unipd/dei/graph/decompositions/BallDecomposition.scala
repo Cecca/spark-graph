@@ -136,7 +136,11 @@ object BallDecomposition extends BallComputer with ArcRelabeler with Timed {
   // Functions on RDDs
 
   def countUncolored(taggedGraph: TaggedGraph) =
-    taggedGraph filter { case (_,(tag,_,_)) => tag != Colored } count()
+      taggedGraph filter { _ match {
+        case (_, (Right(_), _)) => false
+        case _ => true
+        }
+      }
 
   def colorGraph( balls: RDD[(NodeId, Ball)] )
   : RDD[(NodeId, Color)] = timed("Graph coloring") {
