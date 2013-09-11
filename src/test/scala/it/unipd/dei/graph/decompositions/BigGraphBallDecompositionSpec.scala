@@ -86,26 +86,4 @@ class BigGraphBallDecompositionSpec extends FlatSpec with BeforeAndAfter
 
   }
 
-  /*
-   * This test is ignored since it may not be significant. As long as the
-   * decomposition is unique, we can afford to resolve ties by ID only in
-   * the same level.
-   */
-  "Function colorGraph" should "assign the correct colors to the graph" ignore {
-    val balls = computeBalls(graph, 1)
-    val actualColors = colorGraph(balls)
-
-    colors.collect.sorted.zip(actualColors.collect.sorted).foreach { _ match {
-      case (expected, actual) =>
-        if( expected != actual )
-          println(actual)
-      }
-    }
-
-    colors.collect.sorted.zip(actualColors.collect.sorted).foreach { _ match {
-        case (expected, actual) => assert( expected === actual )
-      }
-    }
-  }
-
 }
