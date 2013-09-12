@@ -61,6 +61,7 @@ class GraphKryoRegistrator extends spark.KryoRegistrator {
     kryo.register(classOf[Array[(NodeId, HyperLogLogCounter)]])
     kryo.register(classOf[(NodeId, HyperLogLogCounter)])
     kryo.register(classOf[(NodeId, (HyperLogLogCounter, HyperLogLogCounter))])
+    kryo.register(classOf[(NodeId, (Neighbourhood, HyperLogLogCounter))])
 
     kryo.register(classOf[Accumulator[Int]])
     kryo.register(classOf[Accumulator[Double]])
