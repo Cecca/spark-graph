@@ -22,7 +22,9 @@ import it.unipd.dei.graph.diameter.hyperAnf.HyperLogLogCounter
 import it.unipd.dei.graph.decompositions.RandomizedBallDecomposition.NodeTag
 import it.unipd.dei.graph.diameter.hyperAnf.HyperLogLogCounter.Register
 import it.unipd.dei.graph.{NodeId, Neighbourhood}
-import spark.Accumulator
+import spark.{SerializableWritable, Accumulator}
+import com.esotericsoftware.kryo.serializers.JavaSerializer
+import spark.broadcast.HttpBroadcast
 
 /**
  * Trait that enables kryo serialization and registers some classes
@@ -65,6 +67,10 @@ class GraphKryoRegistrator extends spark.KryoRegistrator {
 
     kryo.register(classOf[Accumulator[Int]])
     kryo.register(classOf[Accumulator[Double]])
+
+    // override registrations performed in KryoSerializer that make the program
+    // crash on IBM JVM
+    kryo.register(classOf[SerializableWritable[_]])
   }
 
 }
