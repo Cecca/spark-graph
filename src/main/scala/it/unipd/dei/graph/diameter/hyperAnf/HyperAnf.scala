@@ -70,7 +70,6 @@ object HyperAnf extends TextInputConverter with Timed {
     while(changed != 0 && iter < maxIter) {
       log info ("=== iteration {}", iter)
       val changedNodes = sc.accumulator(0)
-      val neighFunc: Accumulator[Double] = sc.accumulator(0)
 
       log info "updating counters"
       counters = graph
@@ -81,16 +80,15 @@ object HyperAnf extends TextInputConverter with Timed {
             .map { case (nodeId, (newCounter, oldCounter)) =>
                if ( newCounter != oldCounter )
                  changedNodes += 1
-               neighFunc += newCounter.size
 
                (nodeId, newCounter)
             }
 
-      log info "forcing evaluation of counters"
-      // force evaluation
-      counters.count()
-
-      neighbourhoodFunction += neighFunc.value
+      log info ("computing value of N({})", iter)
+      val newValue: Double =
+        counters.map { case (nodeId, counter) => counter.size }.reduce ( _ + _ )
+      log info ("N({}) is {}", iter, newValue)
+      neighbourhoodFunction += newValue
 
       changed = changedNodes.value
       log info ("a total of {} nodes changed", changed)
