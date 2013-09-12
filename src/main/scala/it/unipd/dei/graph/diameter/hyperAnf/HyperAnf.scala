@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory
  */
 object HyperAnf extends TextInputConverter with Timed {
 
-  val logger = LoggerFactory.getLogger("HyperAnf")
+  private val log = LoggerFactory.getLogger("HyperAnf")
 
   def sendCounters(data: (NodeId, (Neighbourhood, HyperLogLogCounter)))
   : TraversableOnce[(NodeId, HyperLogLogCounter)] = data match {
@@ -45,12 +45,14 @@ object HyperAnf extends TextInputConverter with Timed {
                 seed: Long = System.nanoTime())// seed is here for testing
   : NeighbourhoodFunction = {
 
+    log info "loading grah"
     val graph: RDD[(NodeId, Neighbourhood)] =
       sc.textFile(input).map(convertAdj).cache()
 
     val bcastNumBits = sc.broadcast(numBits)
     val bcastSeed = sc.broadcast(seed)
 
+    log info "init counter"
     // init counters
     var counters: RDD[(NodeId, HyperLogLogCounter)] =
       graph map { case (nodeId, _) =>
@@ -64,11 +66,13 @@ object HyperAnf extends TextInputConverter with Timed {
     val neighbourhoodFunction: mutable.MutableList[Double] =
       new mutable.MutableList[Double]
 
+    log info "start iterations"
     while(changed != 0 && iter < maxIter) {
-      logger debug ("Iteration {}", iter)
+      log info ("=== iteration {}", iter)
       val changedNodes = sc.accumulator(0)
       val neighFunc: Accumulator[Double] = sc.accumulator(0)
 
+      log info "updating counters"
       counters = graph
             .join(counters)
             .flatMap(sendCounters)
@@ -82,12 +86,14 @@ object HyperAnf extends TextInputConverter with Timed {
                (nodeId, newCounter)
             }
 
+      log info "forcing evaluation of counters"
       // force evaluation
       counters.count()
 
       neighbourhoodFunction += neighFunc.value
 
       changed = changedNodes.value
+      log info ("a total of {} nodes changed", changed)
       iter += 1
     }
 
