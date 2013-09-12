@@ -20,6 +20,8 @@ package it.unipd.dei.graph.serialization
 import com.esotericsoftware.kryo.Kryo
 import it.unipd.dei.graph.diameter.hyperAnf.HyperLogLogCounter
 import it.unipd.dei.graph.decompositions.RandomizedBallDecomposition.NodeTag
+import it.unipd.dei.graph.diameter.hyperAnf.HyperLogLogCounter.Register
+import it.unipd.dei.graph.{NodeId, Neighbourhood}
 
 /**
  * Trait that enables kryo serialization and registers some classes
@@ -40,15 +42,24 @@ class GraphKryoRegistrator extends spark.KryoRegistrator {
     kryo.register(classOf[Long])
     kryo.register(classOf[Double])
     kryo.register(classOf[Boolean])
+    kryo.register(classOf[(NodeId, Neighbourhood)])
     kryo.register(classOf[Seq[Int]])
     kryo.register(classOf[(Int,Int)])
-    kryo.register(classOf[HyperLogLogCounter])
     kryo.register(classOf[Array[Int]])
     kryo.register(classOf[Array[Byte]])
     kryo.register(classOf[Array[(Int,Int)]])
     kryo.register(classOf[Either[Byte,Int]])
     kryo.register(classOf[NodeTag])
     kryo.register(classOf[(Boolean, Int, Int)])
+
+    // Hyper log log counters
+    kryo.register(classOf[HyperLogLogCounter])
+    kryo.register(classOf[Register])
+    kryo.register(classOf[Array[Register]])
+    kryo.register(classOf[Array[Register]])
+    kryo.register(classOf[Array[(NodeId, HyperLogLogCounter)]])
+    kryo.register(classOf[(NodeId, HyperLogLogCounter)])
+    kryo.register(classOf[(NodeId, (HyperLogLogCounter, HyperLogLogCounter))])
   }
 
 }
