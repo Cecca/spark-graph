@@ -61,6 +61,10 @@ object HyperAnf extends TextInputConverter with Timed {
         (nodeId, counter)
       }
 
+    log info "Forcing evaluation of initial counters"
+    val initialSum = counters.map{case (_,cnt) => cnt.size}.reduce( _ + _ )
+    log info ("Initial sum of counters is {}", initialSum)
+
     var changed = -1
     var iter = 0
     val neighbourhoodFunction: mutable.MutableList[Double] =
