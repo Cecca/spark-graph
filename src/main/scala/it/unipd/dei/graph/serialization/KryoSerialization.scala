@@ -25,6 +25,7 @@ import it.unipd.dei.graph.{NodeId, Neighbourhood}
 import spark.{SerializableWritable, Accumulator}
 import com.esotericsoftware.kryo.serializers.JavaSerializer
 import spark.broadcast.HttpBroadcast
+import org.slf4j.LoggerFactory
 
 /**
  * Trait that enables kryo serialization and registers some classes
@@ -39,38 +40,50 @@ trait KryoSerialization {
 
 class GraphKryoRegistrator extends spark.KryoRegistrator {
 
+  private val log = LoggerFactory.getLogger("KryoRegistrator")
+
   override def registerClasses(kryo: Kryo) {
-    kryo.register(classOf[Int])
-    kryo.register(classOf[Byte])
-    kryo.register(classOf[Long])
-    kryo.register(classOf[Double])
-    kryo.register(classOf[Boolean])
-    kryo.register(classOf[(NodeId, Neighbourhood)])
-    kryo.register(classOf[Seq[Int]])
-    kryo.register(classOf[(Int,Int)])
-    kryo.register(classOf[Array[Int]])
-    kryo.register(classOf[Array[Byte]])
-    kryo.register(classOf[Array[(Int,Int)]])
-    kryo.register(classOf[Either[Byte,Int]])
-    kryo.register(classOf[NodeTag])
-    kryo.register(classOf[(Boolean, Int, Int)])
 
-    // Hyper log log counters
-    kryo.register(classOf[HyperLogLogCounter])
-    kryo.register(classOf[Register])
-    kryo.register(classOf[Array[Register]])
-    kryo.register(classOf[Array[Register]])
-    kryo.register(classOf[Array[(NodeId, HyperLogLogCounter)]])
-    kryo.register(classOf[(NodeId, HyperLogLogCounter)])
-    kryo.register(classOf[(NodeId, (HyperLogLogCounter, HyperLogLogCounter))])
-    kryo.register(classOf[(NodeId, (Neighbourhood, HyperLogLogCounter))])
+    val toRegister = List(
+      // base types used for the description of graphs
+      1, 1.0, 1.toByte, 1L, true, false, "hello", (0, Array(1,2,3)),
 
-    kryo.register(classOf[Accumulator[Int]])
-    kryo.register(classOf[Accumulator[Double]])
+      // ball decomposition types
+      Left(0.toByte), Right(1),
+      (Left(0.toByte), Array(1,2,3)), // nodetag
+      (Right(1), Array(1,2,3)), // nodetag
+      (1, (Left(0.toByte), Array(1,2,3))),
+      (1, (Right(1), Array(1,2,3))),
+      (true, 1), (1, (true, 1)),
+      (1,1),
+      (1, ((Left(0.toByte), Array(1,2,3)), Some(Seq(true, 10)))), // markCandidate data
+      (1, ((Right(1), Array(1,2,3)), Some(Seq(true, 10)))), // markCandidate data
+      (1, ((Right(1), Array(1,2,3)), None)), // markCandidate data
+      (1, ((Left(1.toByte), Array(1,2,3)), None)), // markCandidate data
+      (1, (1,1)), // colorDominated result
+      (1, ((Left(0.toByte), Array(1,2,3)), Some((1,1)))), // applyColors argument
+      (1, ((Right(0), Array(1,2,3)), Some((1,1)))), // applyColors argument
+      (1, ((Right(0), Array(1,2,3)), None)), // applyColors argument
+      (1, ((Left(0.toByte), Array(1,2,3)), None)) // applyColors argument
+    )
 
-    // override registrations performed in KryoSerializer that make the program
-    // crash on IBM JVM
-    kryo.register(classOf[SerializableWritable[_]])
+    toRegister.foreach { e =>
+      log debug ("registering class of {}", e.toString)
+      log debug ("registering {}", e.getClass)
+      kryo.register(e.getClass)
+      val sequence = Seq(e, e, e)
+      log debug ("registering {}", sequence.getClass)
+      kryo.register(sequence.getClass)
+      val list = List(e, e, e)
+      log debug ("registering {}", list.getClass)
+      kryo.register(list.getClass)
+      val arr = Array(e, e, e)
+      log debug ("registering {}", arr.getClass)
+      kryo.register(arr.getClass)
+      val cons = e :: Nil
+      log debug ("registering {}", cons.getClass)
+      kryo.register(cons.getClass)
+    }
   }
 
 }
