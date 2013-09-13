@@ -12,7 +12,7 @@ scalacOptions += "-optimise"
 // multiple SparkContexts
 parallelExecution in Test := false
 
-libraryDependencies += "org.apache.hadoop" % "hadoop-client" % "1.0.3"
+libraryDependencies += "org.apache.hadoop" % "hadoop-client" % "1.2.1"
 
 libraryDependencies += "org.spark-project" % "spark-core_2.9.3" % "0.7.3" excludeAll(
     ExclusionRule("ch.qos.logback"),
