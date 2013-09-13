@@ -27,7 +27,7 @@ class HyperAnfSparkSpec extends FlatSpec with LocalSparkContext {
   val graphFile = "src/test/resources/big/graph.adj"
 
   "The neighbourhood function" should "be an increasing function" in {
-    val nf = hyperAnf(sc, graphFile, 4, 10, 2)
+    val nf = hyperAnf(sc, graphFile, 4, 10, None)
 
     for ( i <- 1 until nf.size ) {
       assert( nf(i-1) <= nf(i), "The neighbourhood function is not increasing" )
@@ -39,14 +39,14 @@ class HyperAnfSparkSpec extends FlatSpec with LocalSparkContext {
 
     val seed = 1234
 
-    val nf1 = hyperAnf(sc, graphFile, 4, 10, 2, seed)
+    val nf1 = hyperAnf(sc, graphFile, 4, 10, None, seed)
 
     sc.stop()
     clearProperties()
 
     val sc2 = new SparkContext("local[2]", "test")
 
-    val nf2 = hyperAnf(sc2, graphFile, 4, 10, 2, seed)
+    val nf2 = hyperAnf(sc2, graphFile, 4, 10, None, seed)
 
     sc2.stop()
     clearProperties()
