@@ -41,13 +41,16 @@ object HyperAnf extends TextInputConverter with Timed {
                 input: String,
                 numBits: Int,
                 maxIter: Int,
-                minSplits: Int,
+                minSplits: Option[Int],
                 seed: Long = System.nanoTime())// seed is here for testing
   : NeighbourhoodFunction = {
 
     log info "loading grah"
-    val graph: RDD[(NodeId, Neighbourhood)] =
+    val graph: RDD[(NodeId, Neighbourhood)] = minSplits map { nSplits =>
+      sc.textFile(input, nSplits).map(convertAdj).cache()
+    } getOrElse {
       sc.textFile(input).map(convertAdj).cache()
+    }
 
     val bcastNumBits = sc.broadcast(numBits)
     val bcastSeed = sc.broadcast(seed)

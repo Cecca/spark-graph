@@ -54,8 +54,13 @@ object Tool extends TextInputConverter with Timed with KryoSerialization with Ma
         val sc = new SparkContext(conf.ballDec.master(), "Ball Decomposition")
 
         logger info "Loading dataset"
-        val graph = sc.textFile(conf.ballDec.input(), conf.ballDec.splits())
-                      .map(convertAdj).cache()
+        val graph = conf.ballDec.splits.get.map { numSplits =>
+          sc.textFile(conf.ballDec.input(), numSplits)
+            .map(convertAdj).cache()
+        } getOrElse {
+          sc.textFile(conf.ballDec.input())
+            .map(convertAdj).cache()
+        }
 
         logger info "Computing ball decomposition"
         val quotient = ballDecomposition(graph, conf.ballDec.radius())
@@ -94,8 +99,13 @@ object Tool extends TextInputConverter with Timed with KryoSerialization with Ma
         val sc = new SparkContext(conf.rndBallDec.master(), "Ball Decomposition")
 
         logger info "Loading dataset"
-        val graph = sc.textFile(conf.rndBallDec.input(), conf.rndBallDec.splits())
-                      .map(convertAdj).cache()
+        val graph = conf.rndBallDec.splits.get.map { numSplits =>
+          sc.textFile(conf.rndBallDec.input(), numSplits)
+            .map(convertAdj).cache()
+        } getOrElse {
+          sc.textFile(conf.rndBallDec.input())
+            .map(convertAdj).cache()
+        }
 
         logger info "Computing randomized ball decomposition"
         val prob = sc.broadcast(conf.rndBallDec.probability())
@@ -117,8 +127,13 @@ object Tool extends TextInputConverter with Timed with KryoSerialization with Ma
         val sc = new SparkContext(conf.simpleRndBallDec.master(), "Ball Decomposition")
 
         logger info "Loading dataset"
-        val graph = sc.textFile(conf.simpleRndBallDec.input(), conf.simpleRndBallDec.splits())
-                      .map(convertAdj).cache()
+        val graph = conf.simpleRndBallDec.splits.get.map { numSplits =>
+          sc.textFile(conf.simpleRndBallDec.input(), numSplits)
+            .map(convertAdj).cache()
+        } getOrElse {
+          sc.textFile(conf.simpleRndBallDec.input())
+            .map(convertAdj).cache()
+        }
 
         logger info "Computing randomized ball decomposition"
         val prob = sc.broadcast(conf.simpleRndBallDec.probability())
@@ -143,7 +158,7 @@ object Tool extends TextInputConverter with Timed with KryoSerialization with Ma
         val nf = timed("hyperANF") {
           hyperAnf( sc, conf.hyperAnf.input(),
                     conf.hyperAnf.numbits(), conf.hyperAnf.maxiter(),
-                    conf.hyperAnf.splits())
+                    conf.hyperAnf.splits.get)
         }
         nf.zipWithIndex.foreach { case (nfElem, idx) =>
           logger info ("N(%d) = %f".format(idx, nfElem))
@@ -236,7 +251,7 @@ object Tool extends TextInputConverter with Timed with KryoSerialization with Ma
   trait MasterOptions extends ScallopConf {
     val master = opt[String](default = Some("local"),
       descr="the spark master")
-    val splits = opt[Int](default = Some(2), // this is the default of Spark
+    val splits = opt[Int](
       descr="the default number of min splits")
   }
 
