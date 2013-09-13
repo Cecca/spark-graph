@@ -126,6 +126,7 @@ object RandomizedBallDecomposition extends BallComputer
     var tGraph = taggedGraph
 
     var uncolored = countUncoloredCenters(tGraph)
+    var iter = 0
 
     while(uncolored > 0) {
       logger debug ("Uncolored ball centers: {}", uncolored)
@@ -139,7 +140,9 @@ object RandomizedBallDecomposition extends BallComputer
 
       uncolored = countUncoloredCenters(tGraph)
       logger debug ("Uncolored after iteration: {}", uncolored)
+      iter += 1
     }
+    logger info ("Number of iterations: {}", iter)
 
     // color nodes still uncolored with their own ID and extract the colors
     tGraph.map(colorRemaining).map(extractColor)

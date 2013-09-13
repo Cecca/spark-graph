@@ -147,6 +147,7 @@ object BallDecomposition extends BallComputer with ArcRelabeler with Timed {
       balls.map { case (node,ball) => (node, (Left(Uncolored), ball)) }
 
     var uncolored = countUncolored(taggedGraph)
+    var iter = 0
 
     while (uncolored > 0) {
       logger debug ("Uncolored " + uncolored)
@@ -164,9 +165,12 @@ object BallDecomposition extends BallComputer with ArcRelabeler with Timed {
       taggedGraph = taggedGraph.leftOuterJoin(newColors).map(applyColors)
 
       uncolored = countUncolored(taggedGraph)
+      iter += 1
     }
+    logger info ("Number of iterations: {}", iter)
 
     taggedGraph.map(extractColor)
+
   }
 
   def ballDecomposition(graph: RDD[(NodeId, Neighbourhood)], radius: Int) = timed("Ball decomposition") {
