@@ -68,15 +68,19 @@ object HyperAnf extends TextInputConverter with Timed {
     val initialSum = counters.map{case (_,cnt) => cnt.size}.reduce( _ + _ )
     log info ("Initial sum of counters is {}", initialSum)
 
-    var changed = -1
+    var changed: Long = -1
     var iter = 0
     val neighbourhoodFunction: mutable.MutableList[Double] =
       new mutable.MutableList[Double]
 
+    var stableNF: Double = 0.0
+
     log info "start iterations"
     while(changed != 0 && iter < maxIter) {
       log info ("=== iteration {}", iter)
-      val changedNodes = sc.accumulator(0)
+
+      val changedNFacc: Accumulator[Double] = sc.accumulator(0.0)
+      val stableNFacc : Accumulator[Double] = sc.accumulator(0.0)
 
       log info "updating counters"
       counters = graph
@@ -84,21 +88,28 @@ object HyperAnf extends TextInputConverter with Timed {
             .flatMap(sendCounters)
             .reduceByKey(_ union _)
             .join(counters) // TODO maybe we can avoid this join
-            .map { case (nodeId, (newCounter, oldCounter)) =>
-               if ( newCounter != oldCounter )
-                 changedNodes += 1
-
-               (nodeId, newCounter)
+            .flatMap { case (nodeId, (newCounter, oldCounter)) =>
+               if ( newCounter != oldCounter ) {
+                 changedNFacc.add(newCounter.size)
+                 Seq((nodeId, newCounter))
+               } else {
+                 stableNFacc.add(newCounter.size)
+                 Seq()
+               }
             }
 
-      log info ("computing value of N({})", iter)
-      val newValue: Double =
-        counters.map { case (nodeId, counter) => counter.size }.reduce ( _ + _ )
-      log info ("N({}) is {}", iter, newValue)
-      neighbourhoodFunction += newValue
-
-      changed = changedNodes.value
+      changed = counters.count()
       log info ("a total of {} nodes changed", changed)
+
+      log info ("computing value of N({})", iter)
+      stableNF += stableNFacc.value
+
+      log debug ("stableNF is {}", stableNF)
+      log debug ("changedNF is {}", changedNFacc.value)
+
+      neighbourhoodFunction += stableNF + changedNFacc.value
+      log info ("N({}) is {}", iter, neighbourhoodFunction.last)
+
       iter += 1
     }
 
