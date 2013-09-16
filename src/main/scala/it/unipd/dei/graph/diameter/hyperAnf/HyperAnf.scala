@@ -113,31 +113,11 @@ object HyperAnf extends TextInputConverter with Timed {
       neighbourhoodFunction += stableNF + changedNFacc.value
       log info ("N({}) is {}", iter, neighbourhoodFunction.last)
 
-      counters = dumpCounters(sc, counters, iter)
-
       iter += 1
     }
 
     neighbourhoodFunction.toSeq
 
-  }
-
-  /**
-   * This is a hack to handle big datasets. If we do not dump the counters RDD
-   * to disk, we get `StackOverflowError`s. Using a MEMORY_AND_DISK_SER storage
-   * level does not help.
-   * @param sc
-   * @param counters
-   * @return
-   */
-  private def dumpCounters( sc: SparkContext,
-                            counters: RDD[(NodeId, HyperLogLogCounter)],
-                            iter: Int)
-  : RDD[(NodeId, HyperLogLogCounter)] = {
-    log info "dumping counters"
-    val filename = tmpDir.getAbsolutePath + "/counters-dump-" + iter
-    counters.saveAsObjectFile(filename)
-    sc.objectFile(filename)
   }
 
   def effectiveDiameter(nf: NeighbourhoodFunction, alpha: Double = 0.9)
