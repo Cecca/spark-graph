@@ -12,3 +12,8 @@ Branches
  - cogroup: [![Build Status](https://travis-ci.org/Cecca/spark-graph.png?branch=cogroup)](https://travis-ci.org/Cecca/spark-graph)
             Optimization of all graph algorithms that uses the `cogroup` primitive instead of the more costly `join`.
 
+Changelog
+---------
+
+ - v0.1.0: Implement ball decomposition (deterministic and randomized)
+           and the distributed version of HyperANF
