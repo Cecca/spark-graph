@@ -18,12 +18,12 @@
 package it.unipd.dei.graph.decompositions
 
 import it.unipd.dei.graph._
-import spark.SparkContext._
-import spark.RDD
+import org.apache.spark.SparkContext._
+import org.apache.spark.rdd.RDD
 import scala.util.Random
 import org.slf4j.LoggerFactory
 import scala.Left
-import spark.broadcast.Broadcast
+import org.apache.spark.broadcast.Broadcast
 
 object FloodBallDecomposition extends ArcRelabeler with Timed {
 

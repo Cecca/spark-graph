@@ -17,8 +17,8 @@
 
 package it.unipd.dei.graph.decompositions
 
-import spark.SparkContext._
-import spark.RDD
+import org.apache.spark.SparkContext._
+import org.apache.spark.rdd.RDD
 import it.unipd.dei.graph._
 import org.slf4j.LoggerFactory
 

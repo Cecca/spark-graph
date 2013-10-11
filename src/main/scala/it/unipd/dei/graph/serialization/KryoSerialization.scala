@@ -20,19 +20,20 @@ package it.unipd.dei.graph.serialization
 import com.esotericsoftware.kryo.Kryo
 import it.unipd.dei.graph.diameter.hyperAnf.HyperLogLogCounter
 import org.slf4j.LoggerFactory
+import org.apache.spark.serializer.KryoRegistrator
 
 /**
  * Trait that enables kryo serialization and registers some classes
  */
 trait KryoSerialization {
 
-  System.setProperty("spark.serializer", "spark.KryoSerializer")
+  System.setProperty("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
   System.setProperty("spark.kryo.registrator",
     "it.unipd.dei.graph.serialization.GraphKryoRegistrator")
 
 }
 
-class GraphKryoRegistrator extends spark.KryoRegistrator {
+class GraphKryoRegistrator extends KryoRegistrator {
 
   private val log = LoggerFactory.getLogger("KryoRegistrator")
 

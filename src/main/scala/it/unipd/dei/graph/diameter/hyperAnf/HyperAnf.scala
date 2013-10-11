@@ -17,13 +17,14 @@
 
 package it.unipd.dei.graph.diameter.hyperAnf
 
-import spark.{Accumulator, RDD, SparkContext}
-import spark.SparkContext._
+import org.apache.spark.{Accumulator, SparkContext}
+import org.apache.spark.SparkContext._
 import it.unipd.dei.graph.{Timed, TextInputConverter, NodeId, Neighbourhood}
 import scala.collection.mutable
 import it.unipd.dei.graph.diameter.{Confidence,EffectiveDiameter}
 import org.slf4j.LoggerFactory
 import java.io.File
+import org.apache.spark.rdd.RDD
 
 /**
  * Implementation of HyperANF with spark

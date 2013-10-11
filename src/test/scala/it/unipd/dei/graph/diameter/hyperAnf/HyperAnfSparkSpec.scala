@@ -20,7 +20,7 @@ package it.unipd.dei.graph.diameter.hyperAnf
 import org.scalatest.FlatSpec
 import it.unipd.dei.graph.LocalSparkContext
 import HyperAnf._
-import spark.SparkContext
+import org.apache.spark.SparkContext
 
 class HyperAnfSparkSpec extends FlatSpec with LocalSparkContext {
 

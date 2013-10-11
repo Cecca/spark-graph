@@ -19,7 +19,7 @@ package it.unipd.dei.graph.decompositions
 
 import org.scalatest._
 import BallDecomposition._
-import spark.RDD
+import org.apache.spark.rdd.RDD
 import scala.collection.mutable
 import it.unipd.dei.graph._
 import it.unipd.dei.graph.LocalSparkContext

@@ -22,7 +22,7 @@ import it.unipd.dei.graph.decompositions.BallDecomposition._
 import it.unipd.dei.graph.decompositions.FloodBallDecomposition._
 import it.unipd.dei.graph.diameter.hyperAnf.HyperAnf._
 import it.unipd.dei.graph.serialization.KryoSerialization
-import spark.SparkContext
+import org.apache.spark.SparkContext
 import org.slf4j.LoggerFactory
 import it.unipd.dei.graph.decompositions.RandomizedBallDecomposition._
 import it.unipd.dei.graph.decompositions.SimpleRandomizedBallDecomposition._

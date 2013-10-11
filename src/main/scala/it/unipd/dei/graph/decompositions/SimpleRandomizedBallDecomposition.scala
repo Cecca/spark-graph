@@ -19,10 +19,10 @@ package it.unipd.dei.graph.decompositions
 
 import org.slf4j.LoggerFactory
 import it.unipd.dei.graph._
-import spark.RDD
-import spark.SparkContext._
+import org.apache.spark.rdd.RDD
+import org.apache.spark.SparkContext._
 import scala.Left
-import spark.broadcast.Broadcast
+import org.apache.spark.broadcast.Broadcast
 import scala.util.Random
 
 object SimpleRandomizedBallDecomposition extends BallComputer

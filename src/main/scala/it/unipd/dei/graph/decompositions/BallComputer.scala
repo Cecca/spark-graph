@@ -18,8 +18,8 @@
 package it.unipd.dei.graph.decompositions
 
 import it.unipd.dei.graph._
-import spark.RDD
-import spark.SparkContext._
+import org.apache.spark.rdd.RDD
+import org.apache.spark.SparkContext._
 
 /**
  * Trait for classes that can compute balls

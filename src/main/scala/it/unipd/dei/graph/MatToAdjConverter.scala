@@ -17,8 +17,8 @@
 
 package it.unipd.dei.graph
 
-import spark.RDD
-import spark.SparkContext._
+import org.apache.spark.rdd.RDD
+import org.apache.spark.SparkContext._
 
 /**
  * Converts a dataset in sparse matrix form to a dataset in adjacency list form

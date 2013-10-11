@@ -2,7 +2,7 @@ import AssemblyKeys._
 
 name := "spark-graph"
 
-version := "0.1.0"
+version := "0.2.0"
 
 scalaVersion := "2.9.3"
 
@@ -12,9 +12,12 @@ scalacOptions += "-optimise"
 // multiple SparkContexts
 parallelExecution in Test := false
 
-libraryDependencies += "org.apache.hadoop" % "hadoop-client" % "1.2.1"
+// The transitive dependency on "asm" is excluded since hadoop depends
+// on asm-3.1 and everything else on asm-4.0 and they are incompatible.
+// This exclusion fixes the problem.
+libraryDependencies += "org.apache.hadoop" % "hadoop-client" % "1.2.1" exclude("asm","asm")
 
-libraryDependencies += "org.spark-project" % "spark-core_2.9.3" % "0.7.3" excludeAll(
+libraryDependencies += "org.apache.spark" % "spark-core_2.9.3" % "0.8.0-incubating" excludeAll(
     ExclusionRule("ch.qos.logback"),
     ExclusionRule("org.apache.hadoop")
     )
@@ -30,6 +33,8 @@ resolvers ++= Seq(
   "Akka Repository" at "http://repo.akka.io/releases/",
   "Spray Repository" at "http://repo.spray.cc/")
 
+// dependency graph
+net.virtualvoid.sbt.graph.Plugin.graphSettings
 
 // sbt-assembly configuration
 

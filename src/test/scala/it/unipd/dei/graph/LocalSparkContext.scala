@@ -18,7 +18,7 @@
 package it.unipd.dei.graph
 
 import org.scalatest.{BeforeAndAfterEach, Suite}
-import spark.SparkContext
+import org.apache.spark.SparkContext
 
 /**
  * Provides a SparkContext to each test. The SparkContext is initialized and

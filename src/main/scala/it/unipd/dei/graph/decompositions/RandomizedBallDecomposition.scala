@@ -19,9 +19,9 @@ package it.unipd.dei.graph.decompositions
 
 import it.unipd.dei.graph._
 import it.unipd.dei.graph.decompositions._
-import spark.SparkContext._
-import spark.RDD
-import spark.broadcast.Broadcast
+import org.apache.spark.SparkContext._
+import org.apache.spark.rdd.RDD
+import org.apache.spark.broadcast.Broadcast
 import scala.util.Random
 import org.slf4j.LoggerFactory
 
