@@ -33,25 +33,30 @@ object FloodBallDecomposition extends Timed {
   // --------------------------------------------------------------------------
   // Map and reduce functions
 
-  def sendColors(data: (NodeId, (Boolean, Neighbourhood, ColorList)))
+  def sendColors(data: (NodeId, (Neighbourhood, ColorList)))
   : TraversableOnce[(NodeId, ColorList)] = data match {
-    case (node, (true, neighs, cList)) => {
-      neighs.map((_, cList))
-    }
-    case (_, (false, _, _)) => Seq()
+    case (node, (neighs, cList)) =>
+      if(cList.nonEmpty)
+        neighs.map((_, cList))
+      else
+        Seq()
   }
 
-  def mergeColors(data: (NodeId, (Seq[(Boolean, Neighbourhood, ColorList)], Seq[ColorList])))
-  : (NodeId, (Boolean, Neighbourhood, ColorList)) = data match {
+  def mergeColors(data: (NodeId, (Seq[(Neighbourhood, ColorList)], Seq[ColorList])))
+  : (NodeId, (Neighbourhood, ColorList)) = data match {
     case (node, (vertex, colors)) if vertex.size == 1 => {
-      vertex.map { case (center, neighs, oldColors) =>
+      vertex.map { case (neighs, oldColors) =>
         // TODO merge with more efficiency
-        val newColors: ColorList = colors.fold(oldColors)((a, b) => (a.distinct ++ b.distinct).distinct)
-        (node, (center, neighs, newColors))
+        val newColors: ColorList =
+          if(colors.nonEmpty)
+            (colors.reduce(_ ++ _) ++ oldColors).distinct
+          else
+            oldColors
+        (node, (neighs, newColors))
       }.head
     }
     case (node, (vertex, _)) =>
-      throw new IllegalArgumentException("Node " + node + " has " + vertex.size + " associated vertices")
+      throw new IllegalArgumentException("Id " + node + " has " + vertex.size + " associated vertices")
   }
 
   // --------------------------------------------------------------------------
@@ -64,11 +69,18 @@ object FloodBallDecomposition extends Timed {
 
     // select centers at random
     logger.info("Selecting centers")
-    var centers: RDD[(NodeId, (Boolean, Neighbourhood, ColorList))] =
+    var centers: RDD[(NodeId, (Neighbourhood, ColorList))] =
       graph.map({ case (node, neighs) =>
         val isCenter = new Random().nextDouble() < centerProbability
-        (node, (isCenter, neighs, Array(node)))
+        if(isCenter)
+          (node, (neighs, Array(node)))
+        else
+          (node, (neighs, Array()))
       })
+
+    val numCenters =
+      centers.filter{case (_, (_,c)) => c.nonEmpty}.count()
+    logger.info("There are {} centers", numCenters)
 
     // propagate their colors
     logger.info("Propagating colors")
@@ -79,18 +91,31 @@ object FloodBallDecomposition extends Timed {
       centers = grouped.map(mergeColors)
     }
 
+    val coloredNodes = centers.filter{case (_, (_,cs)) => cs.nonEmpty}.count()
+    logger.info("There are {} colored nodes", coloredNodes)
+
+    // assign color to nodes missing it and remove the boolean flag
+    val colors: RDD[(NodeId, (Neighbourhood, ColorList))] =
+      centers.map { case (node, (neighs, colors)) =>
+        if(colors.isEmpty) {
+          (node, (neighs, Array(node)))
+        } else {
+          (node, (neighs, colors))
+        }
+      }
+
     // create edges with all the colors and relabel them
     logger.info("Relabeling sources of edges")
     val coloredSources: RDD[(NodeId, ColorList)] =
-      centers.flatMap { case (node, (_, neighs, colors)) =>
+      colors.flatMap { case (node, (neighs, colors)) =>
          neighs map { (_, colors) }
       }
 
     logger.info("Relabeling destinations of edges")
     val edges =
-      centers.cogroup(coloredSources).flatMap { case (node, (vertex, sourcesColors)) =>
+      colors.cogroup(coloredSources).flatMap { case (node, (vertex, sourcesColors)) =>
         vertex.head match {
-          case (_, _, colors) => {
+          case (_, colors) => {
             val localEdges = for (
               sColors <- sourcesColors;
               s <- sColors;
