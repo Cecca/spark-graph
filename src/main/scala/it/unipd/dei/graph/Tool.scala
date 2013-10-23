@@ -129,6 +129,33 @@ object Tool extends TextInputConverter with Timed with KryoSerialization with Ma
         }
       }
 
+      // Flood ball Decomposition ----------------------------------------
+      case Some(conf.floodBallDec) => {
+        val sc = new SparkContext(conf.floodBallDec.master(), "Ball Decomposition")
+
+        logger info "Loading dataset"
+        val graph = conf.floodBallDec.splits.get.map { numSplits =>
+          sc.textFile(conf.floodBallDec.input(), numSplits)
+            .map(convertAdj).cache()
+        } getOrElse {
+          sc.textFile(conf.floodBallDec.input())
+            .map(convertAdj).cache()
+        }
+
+        logger info "Computing randomized ball decomposition"
+        val quotient = floodBallDecomposition(
+          graph,
+          conf.floodBallDec.radius(),
+          conf.floodBallDec.probability())
+
+        logger info ("Quotient cardinality: {}", quotient.count())
+
+        conf.floodBallDec.output.get match {
+          case Some(out) => quotient.saveAsTextFile(out)
+          case _ => logger info "Not writing output"
+        }
+      }
+
       // HyperANF -------------------------------------------------------------
       case Some(conf.hyperAnf) => {
         val sc = new SparkContext(conf.hyperAnf.master(), "HyperANF")
@@ -199,6 +226,13 @@ object Tool extends TextInputConverter with Timed with KryoSerialization with Ma
 
     val simpleRndBallDec = new Subcommand("rnd-ball-dec-simple") with MasterOptions with IOOptions {
       banner("Computes the simple randomized ball decomposition of the given graph")
+      val radius = opt[Int](default = Some(1), descr="the radius of the balls")
+      val probability = opt[Double](required = true,
+        descr="the probability to select a node as ball center")
+    }
+
+    val floodBallDec = new Subcommand("flood-ball-dec") with MasterOptions with IOOptions {
+      banner("Computes the flood ball decomposition of the given graph")
       val radius = opt[Int](default = Some(1), descr="the radius of the balls")
       val probability = opt[Double](required = true,
         descr="the probability to select a node as ball center")
