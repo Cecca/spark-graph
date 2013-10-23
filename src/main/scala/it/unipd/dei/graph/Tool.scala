@@ -150,6 +150,14 @@ object Tool extends TextInputConverter with Timed with KryoSerialization with Ma
 
         logger info ("Quotient cardinality: {}", quotient.count())
 
+        logger info "Computing diameter"
+        val nf = timed("hyperANF") {
+          hyperAnf( sc, quotient, 5, 25, None, System.nanoTime() )
+        }
+        val effDiam = effectiveDiameter(nf, 1)
+
+        logger info ("Effective diameter at 1 = %f".format(effDiam))
+
         conf.floodBallDec.output.get match {
           case Some(out) => quotient.saveAsTextFile(out)
           case _ => logger info "Not writing output"

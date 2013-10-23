@@ -42,20 +42,12 @@ object HyperAnf extends TextInputConverter with Timed {
   }
 
   def hyperAnf( sc: SparkContext,
-                input: String,
+                graph: RDD[(NodeId, Neighbourhood)],
                 numBits: Int,
                 maxIter: Int,
                 minSplits: Option[Int],
-                seed: Long = System.nanoTime())// seed is here for testing
+                seed: Long)// seed is here for testing
   : NeighbourhoodFunction = {
-
-    log info "loading grah"
-    val graph: RDD[(NodeId, Neighbourhood)] = minSplits map { nSplits =>
-      sc.textFile(input, nSplits).map(convertAdj).cache()
-    } getOrElse {
-      sc.textFile(input).map(convertAdj).cache()
-    }
-
     val bcastNumBits = sc.broadcast(numBits)
     val bcastSeed = sc.broadcast(seed)
 
@@ -88,19 +80,19 @@ object HyperAnf extends TextInputConverter with Timed {
 
       log info "updating counters"
       counters = graph
-            .join(counters)
-            .flatMap(sendCounters)
-            .reduceByKey(_ union _)
-            .join(counters) // TODO maybe we can avoid this join
-            .flatMap { case (nodeId, (newCounter, oldCounter)) =>
-               if ( newCounter != oldCounter ) {
-                 changedNFacc.add(newCounter.size)
-                 Seq((nodeId, newCounter))
-               } else {
-                 stableNFacc.add(newCounter.size)
-                 Seq()
-               }
-            }
+        .join(counters)
+        .flatMap(sendCounters)
+        .reduceByKey(_ union _)
+        .join(counters) // TODO maybe we can avoid this join
+        .flatMap { case (nodeId, (newCounter, oldCounter)) =>
+        if ( newCounter != oldCounter ) {
+          changedNFacc.add(newCounter.size)
+          Seq((nodeId, newCounter))
+        } else {
+          stableNFacc.add(newCounter.size)
+          Seq()
+        }
+      }
 
       changed = counters.count()
       log info ("a total of {} nodes changed", changed)
@@ -118,6 +110,24 @@ object HyperAnf extends TextInputConverter with Timed {
     }
 
     neighbourhoodFunction.toSeq
+  }
+
+  def hyperAnf( sc: SparkContext,
+                input: String,
+                numBits: Int,
+                maxIter: Int,
+                minSplits: Option[Int],
+                seed: Long = System.nanoTime())// seed is here for testing
+  : NeighbourhoodFunction = {
+
+    log info "loading graph"
+    val graph: RDD[(NodeId, Neighbourhood)] = minSplits map { nSplits =>
+      sc.textFile(input, nSplits).map(convertAdj).cache()
+    } getOrElse {
+      sc.textFile(input).map(convertAdj).cache()
+    }
+
+    hyperAnf(sc, graph, numBits, maxIter, minSplits, seed)
 
   }
 
