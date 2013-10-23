@@ -109,6 +109,8 @@ object FloodBallDecomposition extends Timed {
     val coloredSources: RDD[(NodeId, ColorList)] =
       colors.flatMap { case (node, (neighs, colors)) =>
          neighs map { (_, colors) }
+      }.reduceByKey { (a, b) =>
+        (a ++ b).distinct
       }
 
     logger.info("Relabeling destinations of edges")
