@@ -30,7 +30,7 @@ object SimpleRandomizedBallDecomposition extends BallComputer
                                             with Timed {
 
   private val logger = LoggerFactory.getLogger(
-    "SimpleRandomizedBallDecomposition")
+    "algorithm.SimpleRandomizedBallDecomposition")
 
   object UncoloredNodeStatus {
     val Center : Byte = 0

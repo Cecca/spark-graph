@@ -24,7 +24,7 @@ import org.slf4j.LoggerFactory
 
 object BallDecomposition extends BallComputer with ArcRelabeler with Timed {
 
-  val logger = LoggerFactory getLogger "BallDecomposition"
+  val logger = LoggerFactory getLogger "algorithm.BallDecomposition"
 
   object UncoloredNodeStatus {
     val Uncolored : Byte = 1

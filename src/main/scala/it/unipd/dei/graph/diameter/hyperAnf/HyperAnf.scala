@@ -31,7 +31,7 @@ import org.apache.spark.rdd.RDD
  */
 object HyperAnf extends TextInputConverter with Timed {
 
-  private val log = LoggerFactory.getLogger("HyperAnf")
+  private val log = LoggerFactory.getLogger("algorithm.HyperAnf")
 
   private val tmpDir = new File(System.getProperty("spark.local.dir", "/tmp"))
 

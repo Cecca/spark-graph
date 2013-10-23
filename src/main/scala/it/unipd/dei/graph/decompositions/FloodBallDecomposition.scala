@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory
 object FloodBallDecomposition extends Timed {
 
   private val logger = LoggerFactory.getLogger(
-    "FloodBallDecomposition")
+    "algorithm.FloodBallDecomposition")
 
   private type ColorList = Array[Color]
 
@@ -81,23 +81,35 @@ object FloodBallDecomposition extends Timed {
 
     // create edges with all the colors and relabel them
     logger.info("Relabeling sources of edges")
-    var edges: RDD[(NodeId, NodeId)] =
+    val coloredSources: RDD[(NodeId, ColorList)] =
       centers.flatMap { case (node, (_, neighs, colors)) =>
-        for ( c <- colors; n <- neighs ) yield (n, c)
+         neighs map { (_, colors) }
       }
 
     logger.info("Relabeling destinations of edges")
-    edges = centers.cogroup(edges).flatMap { case (node, (vertex, sources)) =>
-      vertex.head match {
-        case (_, _, colors) => {
-          for ( s <- sources ; c <- colors ) yield (s, c)
+    val edges =
+      centers.cogroup(coloredSources).flatMap { case (node, (vertex, sourcesColors)) =>
+        vertex.head match {
+          case (_, _, colors) => {
+            val localEdges = for (
+              sColors <- sourcesColors;
+              s <- sColors;
+              c <- colors
+            ) yield (s, c)
+            localEdges.distinct
+          }
         }
       }
-    }
 
     // now revert to an adjacency list representation
     logger.info("Reverting to an adjacency list representation")
-    edges.groupByKey().map{case (node, neighs) => (node, neighs.distinct.toArray)}
+    val reduced =
+      edges.groupByKey().map{case (node, neighs) => (node, neighs.distinct.toArray)}
+
+    // force evaluation
+    reduced.foreach(x => {})
+
+    reduced
 
   }
 
