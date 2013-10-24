@@ -18,6 +18,7 @@
 package it.unipd.dei.graph
 
 import org.slf4j.LoggerFactory
+import org.apache.spark.rdd.RDD
 
 trait Timed {
 
@@ -27,6 +28,15 @@ trait Timed {
     val start = System.currentTimeMillis()
     val ret = f
     val end = System.currentTimeMillis()
+    timedLogger info ("%s time: %d ms".format(name, (end-start)))
+    ret
+  }
+
+  def timedForce[R <: RDD[_]](name: String)(f: => R): R = {
+    val start = System.currentTimeMillis()
+    val ret = f
+    val end = System.currentTimeMillis()
+    ret.foreach(x => {}) // force evaluation
     timedLogger info ("%s time: %d ms".format(name, (end-start)))
     ret
   }

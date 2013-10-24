@@ -65,7 +65,7 @@ object FloodBallDecomposition extends Timed {
   def floodBallDecomposition( graph: RDD[(NodeId, Neighbourhood)],
                               radius: Int,
                               centerProbability: Double)
-  : RDD[(NodeId, Neighbourhood)] = timed("flood-ball-decomposition") {
+  : RDD[(NodeId, Neighbourhood)] = timedForce("flood-ball-decomposition") {
 
     // select centers at random
     logger.info("Selecting centers")
@@ -132,9 +132,6 @@ object FloodBallDecomposition extends Timed {
     logger.info("Reverting to an adjacency list representation")
     val reduced =
       edges.groupByKey().map{case (node, neighs) => (node, neighs.distinct.toArray)}
-
-    // force evaluation
-    reduced.foreach(x => {})
 
     reduced
 
