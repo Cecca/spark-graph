@@ -35,8 +35,8 @@ trait Timed {
   def timedForce[R <: RDD[_]](name: String)(f: => R): R = {
     val start = System.currentTimeMillis()
     val ret = f
-    val end = System.currentTimeMillis()
     ret.foreach(x => {}) // force evaluation
+    val end = System.currentTimeMillis()
     timedLogger info ("%s time: %d ms".format(name, (end-start)))
     ret
   }

@@ -85,17 +85,20 @@ object FloodBallDecomposition extends Timed {
     // propagate their colors
     logger.info("Propagating colors")
     for(i <- 0 until radius) {
-      logger.info("Iteration {}", i)
-      val newColors = centers.flatMap(sendColors)
-      val grouped = centers.cogroup(newColors)
-      centers = grouped.map(mergeColors)
+      timed("iteration") {
+        logger.info("Iteration {}", i)
+        val newColors = centers.flatMap(sendColors)
+        val grouped = centers.cogroup(newColors)
+        centers = grouped.map(mergeColors)
+        centers.foreach(x => {})
+      }
     }
 
     val coloredNodes = centers.filter{case (_, (_,cs)) => cs.nonEmpty}.count()
     logger.info("There are {} colored nodes", coloredNodes)
 
     // assign color to nodes missing it and remove the boolean flag
-    val colors: RDD[(NodeId, (Neighbourhood, ColorList))] =
+    val colors: RDD[(NodeId, (Neighbourhood, ColorList))] = timedForce("assign-missing-colors") {
       centers.map { case (node, (neighs, colors)) =>
         if(colors.isEmpty) {
           (node, (neighs, Array(node)))
@@ -103,18 +106,20 @@ object FloodBallDecomposition extends Timed {
           (node, (neighs, colors))
         }
       }
+    }
 
     // create edges with all the colors and relabel them
     logger.info("Relabeling sources of edges")
-    val coloredSources: RDD[(NodeId, ColorList)] =
+    val coloredSources: RDD[(NodeId, ColorList)] = timedForce("relabel-sources") {
       colors.flatMap { case (node, (neighs, colors)) =>
          neighs map { (_, colors) }
       }.reduceByKey { (a, b) =>
         (a ++ b).distinct
       }
+    }
 
     logger.info("Relabeling destinations of edges")
-    val edges =
+    val edges = timedForce("relabel-destinations") {
       colors.cogroup(coloredSources).flatMap { case (node, (vertex, sourcesColors)) =>
         vertex.head match {
           case (_, colors) => {
@@ -127,11 +132,13 @@ object FloodBallDecomposition extends Timed {
           }
         }
       }
+    }
 
     // now revert to an adjacency list representation
     logger.info("Reverting to an adjacency list representation")
-    val reduced =
+    val reduced = timedForce("Revert to adjacency list") {
       edges.groupByKey().map{case (node, neighs) => (node, neighs.distinct.toArray)}
+    }
 
     reduced
 
