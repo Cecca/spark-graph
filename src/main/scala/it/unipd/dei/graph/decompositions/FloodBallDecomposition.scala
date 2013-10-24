@@ -115,6 +115,8 @@ object FloodBallDecomposition extends Timed {
          neighs map { (_, colors) }
       }.reduceByKey { (a, b) =>
         (a ++ b).distinct
+      }.map { case (node, colors) =>
+        (node, colors.distinct)
       }
     }
 
