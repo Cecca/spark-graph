@@ -62,6 +62,13 @@ object FloodBallDecomposition extends Timed {
   // --------------------------------------------------------------------------
   // Functions on RDDs
 
+  def transpose( graph: RDD[(NodeId, Neighbourhood)] )
+  : RDD[(NodeId, Neighbourhood)] = timedForce("transpose-graph") {
+    graph.flatMap { case (node, neighs) => neighs.map((_, node)) }
+      .groupByKey().map{case (node, inNeighs) => (node, inNeighs.distinct.toArray)}
+  }
+
+
   def floodBallDecomposition( graph: RDD[(NodeId, Neighbourhood)],
                               radius: Int,
                               centerProbability: Double)
@@ -98,60 +105,32 @@ object FloodBallDecomposition extends Timed {
     logger.info("There are {} colored nodes", coloredNodes)
 
     // assign color to nodes missing it and remove the boolean flag
-    val colors: RDD[(NodeId, (Neighbourhood, ColorList))] = timedForce("assign-missing-colors") {
+    val colors: RDD[(NodeId, ColorList)] = timedForce("assign-missing-colors") {
       centers.map { case (node, (neighs, colors)) =>
         if(colors.isEmpty) {
-          (node, (neighs, Array(node)))
+          (node, Array(node))
         } else {
-          (node, (neighs, colors))
+          (node, colors)
         }
       }
     }
 
-    // create edges with all the colors and relabel them
-    logger.info("Relabeling sources of edges")
-    val coloredSources: RDD[(NodeId, ColorList)] = timedForce("relabel-sources") {
-      colors.flatMap { case (node, (neighs, colors)) =>
-         neighs map { (_, colors) }
-      }.reduceByKey { (a, b) =>
-        (a ++ b).distinct
-      }.map { case (node, colors) =>
-        (node, colors.distinct)
-      }
+    // shrink graph
+    logger.info("Transposing original graph")
+    val transposedGraph = transpose(graph)
+
+    logger.info("Sending colors to predecessors in transposed graph")
+    val colored = timedForce("sending-colors") {
+      transposedGraph.join(colors)
+        .flatMap(sendColors)
+        .reduceByKey{ (a, b) => (a ++ b).distinct }
+        .filter{ case (n, cs) => cs.contains(n) }
     }
 
-    logger.info("Relabeling destinations of edges")
-    val edges = timedForce("relabel-destinations") {
-      colors.cogroup(coloredSources).flatMap { case (node, (vertex, sourcesColors)) =>
-        vertex.head match {
-          case (_, colors) => {
-            for (
-              sColors <- sourcesColors;
-              s <- sColors;
-              c <- colors
-            ) yield (s, c)
-          }
-        }
-      }
-    }
+    logger.info("Transposing colored graph to get the quotient")
+    val quotient = transpose(colored)
 
-    val duplicatedEdges = edges.count()
-    logger.info("There are a total of {} edges, counting duplicates", duplicatedEdges)
-
-    val distinctEdges = timedForce("distinct-edges") {
-      edges.distinct().cache()
-    }
-
-    val distinctCount = distinctEdges.count()
-    logger.info("There are a total of {} distinct edges", distinctCount)
-
-    // now revert to an adjacency list representation
-    logger.info("Reverting to an adjacency list representation")
-    val reduced = timedForce("Revert to adjacency list") {
-      distinctEdges.groupByKey().map{case (node, neighs) => (node, neighs.distinct.toArray)}
-    }
-
-    reduced
+    quotient
 
   }
 
