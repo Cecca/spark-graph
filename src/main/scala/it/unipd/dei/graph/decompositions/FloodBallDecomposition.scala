@@ -123,21 +123,30 @@ object FloodBallDecomposition extends Timed {
       colors.cogroup(coloredSources).flatMap { case (node, (vertex, sourcesColors)) =>
         vertex.head match {
           case (_, colors) => {
-            val localEdges = for (
+            for (
               sColors <- sourcesColors;
               s <- sColors;
               c <- colors
             ) yield (s, c)
-            localEdges.distinct
           }
         }
       }
     }
 
+    val duplicatedEdges = edges.count()
+    logger.info("There are a total of {} edges, counting duplicates", duplicatedEdges)
+
+    val distinctEdges = timedForce("distinct-edges") {
+      edges.distinct().cache()
+    }
+
+    val distinctCount = distinctEdges.count()
+    logger.info("There are a total of {} distinct edges", distinctCount)
+
     // now revert to an adjacency list representation
     logger.info("Reverting to an adjacency list representation")
     val reduced = timedForce("Revert to adjacency list") {
-      edges.groupByKey().map{case (node, neighs) => (node, neighs.distinct.toArray)}
+      distinctEdges.groupByKey().map{case (node, neighs) => (node, neighs.distinct.toArray)}
     }
 
     reduced
