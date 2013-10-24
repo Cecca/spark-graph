@@ -26,6 +26,7 @@ import org.apache.spark.SparkContext
 import org.slf4j.LoggerFactory
 import it.unipd.dei.graph.decompositions.RandomizedBallDecomposition._
 import it.unipd.dei.graph.decompositions.SimpleRandomizedBallDecomposition._
+import scala.math.ceil
 
 /**
  * Main entry point for the entire application
@@ -152,11 +153,12 @@ object Tool extends TextInputConverter with Timed with KryoSerialization with Ma
 
         logger info "Computing diameter"
         val nf = timed("hyperANF") {
-          hyperAnf( sc, quotient, 5, 25, None, System.nanoTime() )
+          hyperAnf( sc, quotient, 6, 25, None, System.nanoTime() )
         }
         val effDiam = effectiveDiameter(nf, 1)
 
         logger info ("Effective diameter at 1 = %f".format(effDiam))
+        logger info ("Diameter of graph is ceil({}) = {}", effDiam, ceil(effDiam))
 
         conf.floodBallDec.output.get match {
           case Some(out) => quotient.saveAsTextFile(out)
