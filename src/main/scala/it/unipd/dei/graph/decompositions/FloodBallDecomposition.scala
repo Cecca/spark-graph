@@ -83,18 +83,17 @@ object FloodBallDecomposition extends Timed {
 
     // select centers at random
     logger.info("Selecting centers")
+    val numCenters = graph.sparkContext.accumulator[Long](0)
     var centers: RDD[(NodeId, (Neighbourhood, ColorList))] =
       graph.map({ case (node, neighs) =>
         val isCenter = new Random().nextDouble() < centerProbability
-        if(isCenter)
+        if(isCenter) {
+          numCenters.add(1)
           (node, (neighs, Array(node)))
+        }
         else
           (node, (neighs, Array()))
       })
-
-    val numCenters =
-      centers.filter{case (_, (_,c)) => c.nonEmpty}.count()
-    logger.info("There are {} centers", numCenters)
 
     // propagate their colors
     logger.info("Propagating colors")
@@ -109,15 +108,20 @@ object FloodBallDecomposition extends Timed {
     logger.info("There are {} colored nodes", coloredNodes)
 
     // assign color to nodes missing it
+    val nonColoredNodes = graph.sparkContext.accumulator[Long](0)
     val colors: RDD[(NodeId, ColorList)] = timedForce("assign-missing-colors", false) {
       centers.map { case (node, (neighs, colors)) =>
         if(colors.isEmpty) {
+          nonColoredNodes.add(1)
           (node, Array(node))
         } else {
           (node, colors)
         }
       }
     }
+    colors.foreach(x => ())
+    logger.info("There are {} centers", numCenters.value)
+    logger.info("There were {} uncolored nodes that were colored with their own ID", nonColoredNodes.value)
 
     // shrink graph
     logger.info("Transposing original graph")
