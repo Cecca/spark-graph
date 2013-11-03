@@ -33,13 +33,20 @@ object FloodBallDecomposition extends Timed {
   // --------------------------------------------------------------------------
   // Map and reduce functions
 
-  def sendColors(data: (NodeId, (Neighbourhood, ColorList)))
+  def sendColorsToNeighbours(data: (NodeId, (Neighbourhood, ColorList)))
   : TraversableOnce[(NodeId, ColorList)] = data match {
     case (node, (neighs, cList)) =>
       if(cList.nonEmpty)
         neighs.map((_, cList))
       else
         Seq()
+  }
+
+  def sendColorsToCenters(data: (NodeId, (Neighbourhood, ColorList)))
+  : TraversableOnce[(NodeId, ColorList)] = data match {
+    case (node, (neighs, cList)) =>
+      val dests = neighs.toSet.intersect(cList.toSet)
+      dests.map((_, cList))
   }
 
   def mergeColors(data: (NodeId, (Seq[(Neighbourhood, ColorList)], Seq[ColorList])))
@@ -94,7 +101,7 @@ object FloodBallDecomposition extends Timed {
     for(i <- 0 until radius) {
       timed("iteration") {
         logger.info("Iteration {}", i)
-        val newColors = centers.flatMap(sendColors)
+        val newColors = centers.flatMap(sendColorsToNeighbours)
         val grouped = centers.cogroup(newColors)
         centers = grouped.map(mergeColors)
         centers.foreach(x => {})
@@ -116,13 +123,14 @@ object FloodBallDecomposition extends Timed {
     }
 
     // shrink graph
+    // on DBLP with r = 2: 25.6 sec, 54.8 MB written
     logger.info("Transposing original graph")
     val transposedGraph = transpose(graph)
 
     logger.info("Sending colors to predecessors in transposed graph")
     val colored = timedForce("sending-colors") {
       transposedGraph.join(colors)
-        .flatMap(sendColors)
+        .flatMap(sendColorsToCenters)
         .reduceByKey{ (a, b) => (a ++ b).distinct }
         .filter{ case (n, cs) => cs.contains(n) }
     }
@@ -131,7 +139,6 @@ object FloodBallDecomposition extends Timed {
     val quotient = transpose(colored)
 
     quotient
-
   }
 
 }
