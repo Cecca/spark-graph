@@ -70,7 +70,7 @@ object FloodBallDecomposition extends Timed {
   // Functions on RDDs
 
   def transpose( graph: RDD[(NodeId, Neighbourhood)] )
-  : RDD[(NodeId, Neighbourhood)] = timedForce("transpose-graph") {
+  : RDD[(NodeId, Neighbourhood)] = timedForce("transpose-graph", false) {
     graph.flatMap { case (node, neighs) => neighs.map((_, node)) }
       .groupByKey().map{case (node, inNeighs) => (node, inNeighs.distinct.toArray)}
   }
@@ -99,20 +99,17 @@ object FloodBallDecomposition extends Timed {
     // propagate their colors
     logger.info("Propagating colors")
     for(i <- 0 until radius) {
-      timed("iteration") {
-        logger.info("Iteration {}", i)
-        val newColors = centers.flatMap(sendColorsToNeighbours)
-        val grouped = centers.cogroup(newColors)
-        centers = grouped.map(mergeColors)
-        centers.foreach(x => {})
-      }
+      logger.info("Iteration {}", i)
+      val newColors = centers.flatMap(sendColorsToNeighbours)
+      val grouped = centers.cogroup(newColors)
+      centers = grouped.map(mergeColors)
     }
 
     val coloredNodes = centers.filter{case (_, (_,cs)) => cs.nonEmpty}.count()
     logger.info("There are {} colored nodes", coloredNodes)
 
-    // assign color to nodes missing it and remove the boolean flag
-    val colors: RDD[(NodeId, ColorList)] = timedForce("assign-missing-colors") {
+    // assign color to nodes missing it
+    val colors: RDD[(NodeId, ColorList)] = timedForce("assign-missing-colors", false) {
       centers.map { case (node, (neighs, colors)) =>
         if(colors.isEmpty) {
           (node, Array(node))
@@ -123,12 +120,11 @@ object FloodBallDecomposition extends Timed {
     }
 
     // shrink graph
-    // on DBLP with r = 2: 25.6 sec, 54.8 MB written
     logger.info("Transposing original graph")
     val transposedGraph = transpose(graph)
 
     logger.info("Sending colors to predecessors in transposed graph")
-    val colored = timedForce("sending-colors") {
+    val colored = timedForce("sending-colors", false) {
       transposedGraph.join(colors)
         .flatMap(sendColorsToCenters)
         .reduceByKey{ (a, b) => (a ++ b).distinct }
