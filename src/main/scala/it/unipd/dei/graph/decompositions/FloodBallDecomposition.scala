@@ -49,21 +49,19 @@ object FloodBallDecomposition extends Timed {
       dests.map((_, cList))
   }
 
-  def mergeColors(data: (NodeId, (Seq[(Neighbourhood, ColorList)], Seq[ColorList])))
+  def mergeColors(data: (NodeId, ( (Neighbourhood, ColorList) , Option[ColorList] )))
   : (NodeId, (Neighbourhood, ColorList)) = data match {
-    case (node, (vertex, colors)) if vertex.size == 1 => {
-      vertex.map { case (neighs, oldColors) =>
-        // TODO merge with more efficiency
-        val newColors: ColorList =
-          if(colors.nonEmpty)
-            (colors.reduce(_ ++ _) ++ oldColors).distinct
-          else
-            oldColors
-        (node, (neighs, newColors))
-      }.head
+    case (node, ( (neighs, oldColors), Some(newColors) )) => {
+      (node, (neighs, merge(oldColors, newColors)))
     }
-    case (node, (vertex, _)) =>
-      throw new IllegalArgumentException("Id " + node + " has " + vertex.size + " associated vertices")
+    case (node, ( vertexData, None)) => {
+      (node, vertexData)
+    }
+  }
+
+  def merge(a: Array[Color], b: Array[Color]): Array[Color] = {
+    // TODO merge with more efficiency
+    a.toSet.union(b.toSet).toArray
   }
 
   // --------------------------------------------------------------------------
@@ -94,14 +92,17 @@ object FloodBallDecomposition extends Timed {
         else
           (node, (neighs, Array()))
       })
+    centers.foreach(x => ())
+    logger.info("There are {} centers", numCenters.value)
 
     // propagate their colors
     logger.info("Propagating colors")
     for(i <- 0 until radius) {
-      logger.info("Iteration {}", i)
-      val newColors = centers.flatMap(sendColorsToNeighbours)
-      val grouped = centers.cogroup(newColors)
+      val newColors = centers.flatMap(sendColorsToNeighbours).reduceByKey(merge)
+      val grouped = centers.leftOuterJoin(newColors)
       centers = grouped.map(mergeColors)
+      val centCnt = centers.count()
+      logger.info("Iteration {}: colored {} nodes", i, centCnt)
     }
 
     val coloredNodes = centers.filter{case (_, (_,cs)) => cs.nonEmpty}.count()
@@ -120,7 +121,6 @@ object FloodBallDecomposition extends Timed {
       }
     }
     colors.foreach(x => ())
-    logger.info("There are {} centers", numCenters.value)
     logger.info("There were {} uncolored nodes that were colored with their own ID", nonColoredNodes.value)
 
     // shrink graph
