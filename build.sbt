@@ -12,14 +12,8 @@ scalacOptions += "-optimise"
 // multiple SparkContexts
 parallelExecution in Test := false
 
-// The transitive dependency on "asm" is excluded since hadoop depends
-// on asm-3.1 and everything else on asm-4.0 and they are incompatible.
-// This exclusion fixes the problem.
-libraryDependencies += "org.apache.hadoop" % "hadoop-client" % "1.2.1" exclude("asm","asm")
-
 libraryDependencies += "org.apache.spark" % "spark-core_2.9.3" % "0.8.0-incubating" excludeAll(
-    ExclusionRule("ch.qos.logback"),
-    ExclusionRule("org.apache.hadoop")
+      ExclusionRule("ch.qos.logback")
     )
 
 libraryDependencies += "it.unimi.dsi" % "webgraph" % "3.0.9" exclude("ch.qos.logback", "logback-classic")
