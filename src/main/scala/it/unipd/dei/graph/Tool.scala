@@ -203,7 +203,7 @@ object Tool extends TextInputConverter with Timed with KryoSerialization with Ma
   }
 
   class Conf(args: Seq[String]) extends ScallopConf(args) {
-    version("spark-graph 0.1.0")
+    version("spark-graph 0.3.0")
     banner("Usage: spark-graph [ball-dec|hyper-anf] -i input [options]")
     footer("\nReport issues at https://github.com/Cecca/spark-graph/issues")
 

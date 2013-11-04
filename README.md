@@ -15,6 +15,7 @@ Branches
 Changelog
 ---------
 
+ - v0.3.0: Add flood ball decomposition
  - v0.2.0: Switch to Spark 0.8.0-incubating
  - v0.1.0: Implement ball decomposition (deterministic and randomized)
            and the distributed version of HyperANF
