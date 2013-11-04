@@ -52,14 +52,13 @@ object Tool extends TextInputConverter with Timed with KryoSerialization with Ma
 
       // Ball Decomposition ---------------------------------------------------
       case Some(conf.ballDec) => {
-        val sc = new SparkContext(conf.ballDec.master(), "Ball Decomposition")
 
         logger info "Loading dataset"
         val graph = conf.ballDec.splits.get.map { numSplits =>
-          sc.textFile(conf.ballDec.input(), numSplits)
+          conf.ballDec.sc.textFile(conf.ballDec.input(), numSplits)
             .map(convertAdj).cache()
         } getOrElse {
-          sc.textFile(conf.ballDec.input())
+          conf.ballDec.sc.textFile(conf.ballDec.input())
             .map(convertAdj).cache()
         }
 
@@ -76,19 +75,17 @@ object Tool extends TextInputConverter with Timed with KryoSerialization with Ma
 
       // Randomized ball Decomposition ----------------------------------------
       case Some(conf.rndBallDec) => {
-        val sc = new SparkContext(conf.rndBallDec.master(), "Ball Decomposition")
-
         logger info "Loading dataset"
         val graph = conf.rndBallDec.splits.get.map { numSplits =>
-          sc.textFile(conf.rndBallDec.input(), numSplits)
+          conf.rndBallDec.sc.textFile(conf.rndBallDec.input(), numSplits)
             .map(convertAdj).cache()
         } getOrElse {
-          sc.textFile(conf.rndBallDec.input())
+          conf.rndBallDec.sc.textFile(conf.rndBallDec.input())
             .map(convertAdj).cache()
         }
 
         logger info "Computing randomized ball decomposition"
-        val prob = sc.broadcast(conf.rndBallDec.probability())
+        val prob = conf.rndBallDec.sc.broadcast(conf.rndBallDec.probability())
         val quotient = randomizedBallDecomposition(
           graph,
           conf.rndBallDec.radius(),
@@ -104,19 +101,17 @@ object Tool extends TextInputConverter with Timed with KryoSerialization with Ma
 
       // Simple ball Decomposition ----------------------------------------
       case Some(conf.simpleRndBallDec) => {
-        val sc = new SparkContext(conf.simpleRndBallDec.master(), "Ball Decomposition")
-
         logger info "Loading dataset"
         val graph = conf.simpleRndBallDec.splits.get.map { numSplits =>
-          sc.textFile(conf.simpleRndBallDec.input(), numSplits)
+          conf.simpleRndBallDec.sc.textFile(conf.simpleRndBallDec.input(), numSplits)
             .map(convertAdj).cache()
         } getOrElse {
-          sc.textFile(conf.simpleRndBallDec.input())
+          conf.simpleRndBallDec.sc.textFile(conf.simpleRndBallDec.input())
             .map(convertAdj).cache()
         }
 
         logger info "Computing randomized ball decomposition"
-        val prob = sc.broadcast(conf.simpleRndBallDec.probability())
+        val prob = conf.simpleRndBallDec.sc.broadcast(conf.simpleRndBallDec.probability())
         val quotient = simpleRandomizedBallDecomposition(
           graph,
           conf.simpleRndBallDec.radius(),
@@ -132,14 +127,12 @@ object Tool extends TextInputConverter with Timed with KryoSerialization with Ma
 
       // Flood ball Decomposition ----------------------------------------
       case Some(conf.floodBallDec) => {
-        val sc = new SparkContext(conf.floodBallDec.master(), "Ball Decomposition")
-
         logger info "Loading dataset"
         val graph = conf.floodBallDec.splits.get.map { numSplits =>
-          sc.textFile(conf.floodBallDec.input(), numSplits)
+          conf.floodBallDec.sc.textFile(conf.floodBallDec.input(), numSplits)
             .map(convertAdj).cache()
         } getOrElse {
-          sc.textFile(conf.floodBallDec.input())
+          conf.floodBallDec.sc.textFile(conf.floodBallDec.input())
             .map(convertAdj).cache()
         }
 
@@ -153,7 +146,7 @@ object Tool extends TextInputConverter with Timed with KryoSerialization with Ma
 
         logger info "Computing diameter"
         val nf = timed("hyperANF") {
-          hyperAnf( sc, quotient, 6, 25, None, System.nanoTime() )
+          hyperAnf( conf.floodBallDec.sc, quotient, 6, 25, None, System.nanoTime() )
         }
         val effDiam = effectiveDiameter(nf, 1)
 
@@ -168,11 +161,9 @@ object Tool extends TextInputConverter with Timed with KryoSerialization with Ma
 
       // HyperANF -------------------------------------------------------------
       case Some(conf.hyperAnf) => {
-        val sc = new SparkContext(conf.hyperAnf.master(), "HyperANF")
-
         logger info "Computing neighbourhood function"
         val nf = timed("hyperANF") {
-          hyperAnf( sc, conf.hyperAnf.input(),
+          hyperAnf( conf.hyperAnf.sc, conf.hyperAnf.input(),
                     conf.hyperAnf.numbits(), conf.hyperAnf.maxiter(),
                     conf.hyperAnf.splits.get)
         }
@@ -190,10 +181,8 @@ object Tool extends TextInputConverter with Timed with KryoSerialization with Ma
       // Dataset conversion ---------------------------------------------------
       case Some(conf.matToAdj) => {
         conf.matToAdj.output.get.map { out =>
-          val sc = new SparkContext(conf.matToAdj.master(), "Conversion")
-
           logger info "Converting dataset"
-          val inData = sc.textFile(
+          val inData = conf.matToAdj.sc.textFile(
             conf.matToAdj.input(), conf.matToAdj.splits()).map(convertEdges)
           timed("Conversion") {
             matToAdj(inData).map { case (node, neighs) =>
@@ -269,6 +258,19 @@ object Tool extends TextInputConverter with Timed with KryoSerialization with Ma
       descr="the spark master")
     val splits = opt[Int](
       descr="the default number of min splits")
+    val sparkHome = opt[String](default = None, descr="The spark home to be passed to the Spark Context")
+    val sparkJars = opt[String](default = None, descr="The jars to distribute across the cluster")
+
+    lazy val sc = {
+      val home = sparkHome.get.getOrElse(null)
+      val jars: Seq[String] = sparkHome.get.map{ jarStr =>
+        jarStr.split(";").toSeq
+      } getOrElse {
+        Nil
+      }
+      new SparkContext(master(), "Spark Graph Algorithms", home, jars)
+
+    }
   }
 
   trait IOOptions extends ScallopConf {
