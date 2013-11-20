@@ -82,21 +82,36 @@ object FloodBallDecomposition extends Timed {
       .groupByKey().map{case (node, inNeighs) => (node, inNeighs.distinct.toArray)}
   }
 
+  def forceEval(rdd: RDD[_]) = rdd.foreach(x => ())
 
   def floodBallDecomposition( graph: RDD[(NodeId, Neighbourhood)],
                               radius: Int,
                               centerProbability: Double)
   : RDD[(NodeId, Neighbourhood)] = timedForce("flood-ball-decomposition") {
 
+    logger.info("Selecting centers at random")
     val centers = selectCenters(graph, centerProbability)
+    forceEval(centers)
 
-    // propagate their colors
-    var coloredGraph = propagateColors(centers, radius)
+    logger.info("Coloring randomly selected centers ball neighbours")
+    val coloredGraph = propagateColors(centers, radius)
+    forceEval(coloredGraph)
 
-    // assign color to nodes missing it
-    coloredGraph = assignMissingColors(graph, coloredGraph, radius)
+    logger.info("Selecting uncolored nodes as centers")
+    val missingCenters = selectMissingCenters(coloredGraph)
+    forceEval(missingCenters)
 
-    val colors = extractColors(coloredGraph)
+    logger.info("Coloring neighbours of newly selected nodes")
+    val missingColors = propagateColors(missingCenters, radius)
+    forceEval(missingColors)
+
+    logger.info("Performing union of the two datasets")
+    val finalColoredGraph = coloredGraph.union(missingColors)
+    forceEval(finalColoredGraph)
+
+    logger.info("Extracting colors")
+    val colors = extractColors(finalColoredGraph).reduceByKey(merge)
+    forceEval(colors)
 
     // shrink graph
     shrinkGraph(graph, colors)
@@ -121,6 +136,23 @@ object FloodBallDecomposition extends Timed {
     centers.foreach(x => ())
     logger.info("There are {} centers", numCenters.value)
     centers
+  }
+
+  def selectMissingCenters(centers: RDD[(NodeId, (Neighbourhood, ColorList))])
+  : RDD[(NodeId, (Neighbourhood, ColorList))] = {
+    val cnt = centers.sparkContext.accumulator(0L)
+    val missing: RDD[(NodeId, (Neighbourhood, ColorList))] =
+      centers.map { case (node, (neighs, colors)) =>
+        if (colors.isEmpty) {
+          cnt.add(1)
+          (node, (neighs, Array(node)))
+        }
+        else
+          (node, (neighs, Array()))
+      }
+    forceEval(missing)
+    logger.info("There are {} uncolored nodes", cnt.value)
+    missing
   }
 
   def propagateColors(centers: RDD[(NodeId, (Neighbourhood, ColorList))], radius: Int)
