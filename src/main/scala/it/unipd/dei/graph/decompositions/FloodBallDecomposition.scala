@@ -23,6 +23,7 @@ import org.apache.spark.SparkContext._
 import scala.util.Random
 import org.slf4j.LoggerFactory
 import scala.Array
+import org.apache.spark.HashPartitioner
 
 object FloodBallDecomposition extends Timed {
 
@@ -79,28 +80,43 @@ object FloodBallDecomposition extends Timed {
   def floodBallDecomposition( graph: RDD[(NodeId, Neighbourhood)],
                               radius: Int,
                               centerProbability: Double)
-  : RDD[(NodeId, Neighbourhood)] = timedForce("flood-ball-decomposition") {
+  : RDD[(NodeId, Neighbourhood)] = {
 
-    logger.info("Selecting centers at random")
-    val centers = selectCenters(graph, centerProbability)
+    val partitionedGraph = partition(graph)
 
-    logger.info("Coloring randomly selected centers ball neighbours")
-    val coloredGraph = propagateColors(centers, radius)
+    timedForce("flood-ball-decomposition") {
 
-    logger.info("Selecting uncolored nodes as centers")
-    val missingCenters = selectMissingCenters(coloredGraph)
+      logger.info("Selecting centers at random")
+      val centers = selectCenters(partitionedGraph, centerProbability)
 
-    logger.info("Coloring neighbours of newly selected nodes")
-    val missingColors = propagateColors(missingCenters, radius)
+      logger.info("Coloring randomly selected centers ball neighbours")
+      val coloredGraph = propagateColors(centers, radius)
 
-    logger.info("Performing union of the two datasets")
-    val finalColoredGraph = coloredGraph.union(missingColors)
+      logger.info("Selecting uncolored nodes as centers")
+      val missingCenters = selectMissingCenters(coloredGraph)
 
-    logger.info("Extracting colors")
-    val colors = extractColors(finalColoredGraph).reduceByKey(merge)
+      logger.info("Coloring neighbours of newly selected nodes")
+      val missingColors = propagateColors(missingCenters, radius)
 
-    // shrink graph
-    shrinkGraph(graph, colors)
+      logger.info("Performing union of the two datasets")
+      val finalColoredGraph = coloredGraph.union(missingColors)
+
+      logger.info("Extracting colors")
+      val colors = extractColors(finalColoredGraph).reduceByKey(merge)
+
+      // shrink graph
+      shrinkGraph(partitionedGraph, colors)
+    }
+  }
+
+  def partition(graph: RDD[(NodeId, Neighbourhood)]) : RDD[(NodeId, Neighbourhood)] = {
+
+    val numPartitions = graph.sparkContext.defaultParallelism
+
+    logger.info("Partitioning graph in {} partitions, using HashPartitioner", numPartitions)
+
+    graph.partitionBy(
+      new HashPartitioner(numPartitions))
   }
 
   def selectCenters(graph: RDD[(NodeId, Neighbourhood)], centerProbability: Double)
