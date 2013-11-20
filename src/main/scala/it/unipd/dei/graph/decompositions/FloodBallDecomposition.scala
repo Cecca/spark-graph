@@ -125,8 +125,11 @@ object FloodBallDecomposition extends Timed {
           else
             (node, (neighs, Array()))
       })
-    centers.foreach(x => ())
-    logger.info("There are {} centers", numCenters.value)
+
+    if(logger.isDebugEnabled) {
+      forceEval(centers)
+      logger.debug("There are {} centers", numCenters.value)
+    }
     centers
   }
 
@@ -142,8 +145,10 @@ object FloodBallDecomposition extends Timed {
         else
           (node, (neighs, Array()))
       }
-    forceEval(missing)
-    logger.info("There are {} uncolored nodes", cnt.value)
+    if(logger.isDebugEnabled()) {
+      forceEval(missing)
+      logger.debug("There are {} uncolored nodes", cnt.value)
+    }
     missing
   }
 
@@ -158,8 +163,10 @@ object FloodBallDecomposition extends Timed {
       cnts = grouped.map(mergeColors)
     }
 
-    val coloredNodes = cnts.filter{case (_, (_,cs)) => cs.nonEmpty}.count()
-    logger.info("There are {} colored nodes", coloredNodes)
+    if(logger.isDebugEnabled()) {
+      val coloredNodes = cnts.filter{case (_, (_,cs)) => cs.nonEmpty}.count()
+      logger.debug("There are {} colored nodes", coloredNodes)
+    }
     cnts
   }
 
