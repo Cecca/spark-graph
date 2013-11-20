@@ -165,8 +165,10 @@ object FloodBallDecomposition extends Timed {
     var cnts = centers
     for(i <- 0 until radius) {
       val newColors = cnts.flatMap(sendColorsToNeighbours).reduceByKey(merge)
-      val centCnt = newColors.count()
-      logger.info("Iteration {}: colored {} nodes", i, centCnt)
+      if(logger.isDebugEnabled) {
+        val centCnt = newColors.count()
+        logger.debug("Iteration {}: colored {} nodes", i, centCnt)
+      }
       val grouped = cnts.leftOuterJoin(newColors)
       cnts = grouped.map(mergeColors)
     }
