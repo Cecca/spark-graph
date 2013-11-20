@@ -172,24 +172,6 @@ object FloodBallDecomposition extends Timed {
     cnts
   }
 
-  def assignMissingColors( graph: RDD[(NodeId, Neighbourhood)],
-                           centers: RDD[(NodeId, (Neighbourhood, ColorList))],
-                           radius: Int)
-  : RDD[(NodeId, (Neighbourhood, ColorList))] = {
-
-    val missing = centers.filter{case (_,(_, colors)) => colors.isEmpty}
-    logger.info("There are {} uncolored nodes", missing.count())
-    var newCenters = missing
-    for(1 <- 0 until radius) {
-      val newColors = newCenters.flatMap(sendColorsToNeighbours).reduceByKey(merge)
-      val newlyColored = graph.join(newColors)
-      newCenters = newCenters.union(newlyColored).reduceByKey(merge)
-    }
-
-    logger.info("Missing colors assigned")
-    centers.union(newCenters).reduceByKey(merge)
-  }
-
   def extractColors(centers: RDD[(NodeId, (Neighbourhood, ColorList))])
   : RDD[(NodeId, ColorList)] = {
     centers.map{case (node, (_, colors)) => (node, colors)}
