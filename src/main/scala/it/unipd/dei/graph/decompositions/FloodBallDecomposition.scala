@@ -65,14 +65,6 @@ object FloodBallDecomposition extends Timed {
     a.toSet.union(b.toSet).toArray
   }
 
-  def merge(a: (Neighbourhood, ColorList), b: (Neighbourhood, ColorList))
-  : (Neighbourhood, ColorList) = {
-    if (a._1 != b._1)
-      throw new IllegalArgumentException("Neighbourhoods should be equal")
-    else
-      (a._1, merge(a._2, b._2))
-  }
-
   // --------------------------------------------------------------------------
   // Functions on RDDs
 
