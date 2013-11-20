@@ -65,6 +65,14 @@ object FloodBallDecomposition extends Timed {
     a.toSet.union(b.toSet).toArray
   }
 
+  def merge(a: (Neighbourhood, ColorList), b: (Neighbourhood, ColorList))
+  : (Neighbourhood, ColorList) = {
+    if (a._1 != b._1)
+      throw new IllegalArgumentException("Neighbourhoods should be equal")
+    else
+      (a._1, merge(a._2, b._2))
+  }
+
   // --------------------------------------------------------------------------
   // Functions on RDDs
 
@@ -86,7 +94,7 @@ object FloodBallDecomposition extends Timed {
     val coloredGraph = propagateColors(centers, radius)
 
     // assign color to nodes missing it
-    val colors = assignMissingColors(graph, coloredGraph)
+    val colors = assignMissingColors(graph, coloredGraph, radius)
 
     // shrink graph
     shrinkGraph(graph, colors)
@@ -130,21 +138,28 @@ object FloodBallDecomposition extends Timed {
     cnts
   }
 
-  def assignMissingColors(graph: RDD[(NodeId, Neighbourhood)], centers: RDD[(NodeId, (Neighbourhood, ColorList))])
+  def assignMissingColors( graph: RDD[(NodeId, Neighbourhood)],
+                           centers: RDD[(NodeId, (Neighbourhood, ColorList))],
+                           radius: Int)
   : RDD[(NodeId, ColorList)] = {
-    val nonColoredNodes = graph.sparkContext.accumulator[Long](0)
-    val colors: RDD[(NodeId, ColorList)] = timedForce("assign-missing-colors", false) {
-      centers.map { case (node, (neighs, colors)) =>
-        if(colors.isEmpty) {
-          nonColoredNodes.add(1)
-          (node, Array(node))
-        } else {
-          (node, colors)
-        }
-      }
+
+    val missing = centers.filter{case (_,(_, colors)) => colors.isEmpty}
+    logger.info("There are {} uncolored nodes", missing.count())
+    var newCenters = missing
+    for(1 <- 0 until radius) {
+      val newColors = newCenters.flatMap(sendColorsToNeighbours).reduceByKey(merge)
+      val newlyColored = graph.join(newColors)
+      newCenters = newCenters.union(newlyColored).reduceByKey(merge)
     }
-    colors.foreach(x => ())
-    logger.info("There were {} uncolored nodes that were colored with their own ID", nonColoredNodes.value)
+
+    val finalCenters = centers.union(newCenters).reduceByKey(merge)
+
+    val colors: RDD[(NodeId, ColorList)] =
+      finalCenters.map { case (node, (_, cs)) =>
+        (node, cs)
+      }
+
+    logger.info("Missing colors assigned")
     colors
   }
 
