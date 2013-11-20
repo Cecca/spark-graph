@@ -91,10 +91,12 @@ object FloodBallDecomposition extends Timed {
     val centers = selectCenters(graph, centerProbability)
 
     // propagate their colors
-    val coloredGraph = propagateColors(centers, radius)
+    var coloredGraph = propagateColors(centers, radius)
 
     // assign color to nodes missing it
-    val colors = assignMissingColors(graph, coloredGraph, radius)
+    coloredGraph = assignMissingColors(graph, coloredGraph, radius)
+
+    val colors = extractColors(coloredGraph)
 
     // shrink graph
     shrinkGraph(graph, colors)
@@ -141,7 +143,7 @@ object FloodBallDecomposition extends Timed {
   def assignMissingColors( graph: RDD[(NodeId, Neighbourhood)],
                            centers: RDD[(NodeId, (Neighbourhood, ColorList))],
                            radius: Int)
-  : RDD[(NodeId, ColorList)] = {
+  : RDD[(NodeId, (Neighbourhood, ColorList))] = {
 
     val missing = centers.filter{case (_,(_, colors)) => colors.isEmpty}
     logger.info("There are {} uncolored nodes", missing.count())
@@ -152,15 +154,13 @@ object FloodBallDecomposition extends Timed {
       newCenters = newCenters.union(newlyColored).reduceByKey(merge)
     }
 
-    val finalCenters = centers.union(newCenters).reduceByKey(merge)
-
-    val colors: RDD[(NodeId, ColorList)] =
-      finalCenters.map { case (node, (_, cs)) =>
-        (node, cs)
-      }
-
     logger.info("Missing colors assigned")
-    colors
+    centers.union(newCenters).reduceByKey(merge)
+  }
+
+  def extractColors(centers: RDD[(NodeId, (Neighbourhood, ColorList))])
+  : RDD[(NodeId, ColorList)] = {
+    centers.map{case (node, (_, colors)) => (node, colors)}
   }
 
   def shrinkGraph(graph: RDD[(NodeId, Neighbourhood)], colors: RDD[(NodeId, ColorList)])
