@@ -187,6 +187,7 @@ object FloodBallDecomposition {
 
     logger.info("Sending colors to predecessors in transposed graph")
     val colored = timedForce("sending-colors", false) {
+
       graph.join(colors)
         .mapPartitions({ dataIterator =>
           dataIterator.flatMap(sendColorsToCenters).toArray.distinct.iterator

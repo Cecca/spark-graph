@@ -60,7 +60,7 @@ object Timer {
       val ret = f
       ret.foreach(x => {}) // force evaluation
       val elapsed = ctx.stop()
-      logger.info("{} time: {}", name, elapsed)
+      logger.info("{} time: {}", name, elapsed*millisFactor)
       ret
     } else {
       f
