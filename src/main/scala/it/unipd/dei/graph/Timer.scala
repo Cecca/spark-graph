@@ -19,26 +19,46 @@ package it.unipd.dei.graph
 
 import org.slf4j.LoggerFactory
 import org.apache.spark.rdd.RDD
+import com.codahale.metrics.{Slf4jReporter, MetricRegistry}
+import java.util.concurrent.TimeUnit
 
-trait Timed {
+object Timer {
 
-  private val timedLogger = LoggerFactory.getLogger("timer")
+  val registry = new MetricRegistry()
+
+  val logger = LoggerFactory.getLogger("timer")
+  
+  private val millisFactor = 0.000001
+
+  def logReport() = {
+    val reporter = Slf4jReporter.forRegistry(registry)
+      .convertDurationsTo(TimeUnit.MILLISECONDS)
+      .convertRatesTo(TimeUnit.MILLISECONDS)
+      .outputTo(logger)
+      .build()
+
+    reporter.report()
+
+    println("Timers")
+    for(key <- registry.getTimers().keySet().toArray(Array[String]())) {
+      val snap = registry.timer(key).getSnapshot()
+      println("%s %d".format(key, (snap.getMean * millisFactor).toInt))
+    }
+  }
 
   def timed[R](name: String)(f: => R): R = {
-    val start = System.currentTimeMillis()
+    val ctx = registry.timer(name).time()
     val ret = f
-    val end = System.currentTimeMillis()
-    timedLogger info ("%s time: %d ms".format(name, (end-start)))
+    ctx.stop()
     ret
   }
 
   def timedForce[R <: RDD[_]](name: String, active: Boolean = true)(f: => R): R = {
     if(active) {
-      val start = System.currentTimeMillis()
+      val ctx = registry.timer(name).time()
       val ret = f
       ret.foreach(x => {}) // force evaluation
-      val end = System.currentTimeMillis()
-      timedLogger info ("%s time: %d ms".format(name, (end-start)))
+      ctx.stop()
       ret
     } else {
       f

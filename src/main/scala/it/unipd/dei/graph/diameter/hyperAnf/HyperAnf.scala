@@ -19,7 +19,7 @@ package it.unipd.dei.graph.diameter.hyperAnf
 
 import org.apache.spark.{Accumulator, SparkContext}
 import org.apache.spark.SparkContext._
-import it.unipd.dei.graph.{Timed, TextInputConverter, NodeId, Neighbourhood}
+import it.unipd.dei.graph.{TextInputConverter, NodeId, Neighbourhood}
 import scala.collection.mutable
 import org.slf4j.LoggerFactory
 import java.io.File
@@ -29,7 +29,7 @@ import it.unipd.dei.graph.GraphForceFunctions._
 /**
  * Implementation of HyperANF with spark
  */
-object HyperAnf extends TextInputConverter with Timed {
+object HyperAnf extends TextInputConverter {
 
   private val log = LoggerFactory.getLogger("algorithm.HyperAnf")
 

@@ -28,11 +28,12 @@ import it.unipd.dei.graph.decompositions.RandomizedBallDecomposition._
 import it.unipd.dei.graph.decompositions.SimpleRandomizedBallDecomposition._
 import scala.math.ceil
 import GraphForceFunctions._
+import Timer._
 
 /**
  * Main entry point for the entire application
  */
-object Tool extends TextInputConverter with Timed with KryoSerialization with MatToAdjConverter {
+object Tool extends TextInputConverter with KryoSerialization with MatToAdjConverter {
 
   val logger = LoggerFactory.getLogger("spark-graph")
 
@@ -200,6 +201,9 @@ object Tool extends TextInputConverter with Timed with KryoSerialization with Ma
       // Default help printing ------------------------------------------------
       case None => conf.printHelp()
     }
+
+    // report timings
+    Timer.logReport()
 
   }
 

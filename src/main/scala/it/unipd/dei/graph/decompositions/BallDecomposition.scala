@@ -21,8 +21,9 @@ import org.apache.spark.SparkContext._
 import org.apache.spark.rdd.RDD
 import it.unipd.dei.graph._
 import org.slf4j.LoggerFactory
+import Timer._
 
-object BallDecomposition extends BallComputer with ArcRelabeler with Timed {
+object BallDecomposition extends BallComputer with ArcRelabeler {
 
   val logger = LoggerFactory getLogger "algorithm.BallDecomposition"
 

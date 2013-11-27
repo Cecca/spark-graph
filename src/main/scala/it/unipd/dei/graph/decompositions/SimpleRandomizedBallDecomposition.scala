@@ -24,10 +24,10 @@ import org.apache.spark.SparkContext._
 import scala.Left
 import org.apache.spark.broadcast.Broadcast
 import scala.util.Random
+import Timer._
 
 object SimpleRandomizedBallDecomposition extends BallComputer
-                                            with ArcRelabeler
-                                            with Timed {
+                                            with ArcRelabeler {
 
   private val logger = LoggerFactory.getLogger(
     "algorithm.SimpleRandomizedBallDecomposition")

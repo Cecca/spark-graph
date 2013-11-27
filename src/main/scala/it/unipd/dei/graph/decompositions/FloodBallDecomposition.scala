@@ -25,8 +25,9 @@ import org.slf4j.LoggerFactory
 import scala.Array
 import org.apache.spark.HashPartitioner
 import GraphForceFunctions._
+import Timer._
 
-object FloodBallDecomposition extends Timed {
+object FloodBallDecomposition {
 
   private val logger = LoggerFactory.getLogger(
     "algorithm.FloodBallDecomposition")
