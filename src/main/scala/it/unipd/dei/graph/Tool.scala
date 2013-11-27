@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory
 import it.unipd.dei.graph.decompositions.RandomizedBallDecomposition._
 import it.unipd.dei.graph.decompositions.SimpleRandomizedBallDecomposition._
 import scala.math.ceil
+import GraphForceFunctions._
 
 /**
  * Main entry point for the entire application
@@ -56,10 +57,10 @@ object Tool extends TextInputConverter with Timed with KryoSerialization with Ma
         logger info "Loading dataset"
         val graph = conf.ballDec.splits.get.map { numSplits =>
           conf.ballDec.sc.textFile(conf.ballDec.input(), numSplits)
-            .map(convertAdj).cache()
+            .map(convertAdj).force().cache()
         } getOrElse {
           conf.ballDec.sc.textFile(conf.ballDec.input())
-            .map(convertAdj).cache()
+            .map(convertAdj).force().cache()
         }
 
         logger info "Computing ball decomposition"
@@ -78,10 +79,10 @@ object Tool extends TextInputConverter with Timed with KryoSerialization with Ma
         logger info "Loading dataset"
         val graph = conf.rndBallDec.splits.get.map { numSplits =>
           conf.rndBallDec.sc.textFile(conf.rndBallDec.input(), numSplits)
-            .map(convertAdj).cache()
+            .map(convertAdj).force().cache()
         } getOrElse {
           conf.rndBallDec.sc.textFile(conf.rndBallDec.input())
-            .map(convertAdj).cache()
+            .map(convertAdj).force().cache()
         }
 
         logger info "Computing randomized ball decomposition"
@@ -104,10 +105,10 @@ object Tool extends TextInputConverter with Timed with KryoSerialization with Ma
         logger info "Loading dataset"
         val graph = conf.simpleRndBallDec.splits.get.map { numSplits =>
           conf.simpleRndBallDec.sc.textFile(conf.simpleRndBallDec.input(), numSplits)
-            .map(convertAdj).cache()
+            .map(convertAdj).force().cache()
         } getOrElse {
           conf.simpleRndBallDec.sc.textFile(conf.simpleRndBallDec.input())
-            .map(convertAdj).cache()
+            .map(convertAdj).force().cache()
         }
 
         logger info "Computing randomized ball decomposition"
@@ -130,10 +131,10 @@ object Tool extends TextInputConverter with Timed with KryoSerialization with Ma
         logger info "Loading dataset"
         val graph = conf.floodBallDec.splits.get.map { numSplits =>
           conf.floodBallDec.sc.textFile(conf.floodBallDec.input(), numSplits)
-            .map(convertAdj).cache()
+            .map(convertAdj).force().cache()
         } getOrElse {
           conf.floodBallDec.sc.textFile(conf.floodBallDec.input())
-            .map(convertAdj).cache()
+            .map(convertAdj).force().cache()
         }
 
         logger info "Computing randomized ball decomposition"
