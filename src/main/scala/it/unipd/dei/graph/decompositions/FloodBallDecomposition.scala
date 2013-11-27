@@ -46,9 +46,7 @@ object FloodBallDecomposition extends Timed {
 
   def sendColorsToCenters(data: (NodeId, (Neighbourhood, ColorList)))
   : TraversableOnce[(NodeId, ColorList)] = data match {
-    case (node, (neighs, cList)) =>
-      val dests = neighs.toSet.intersect(cList.toSet)
-      dests.map((_, cList))
+    case (node, (neighs, cList)) => cList.map((_, cList))
   }
 
   def mergeColors(data: (NodeId, ( (Neighbourhood, ColorList) , Option[ColorList] )))
