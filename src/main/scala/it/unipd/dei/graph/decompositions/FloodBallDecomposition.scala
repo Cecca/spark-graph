@@ -24,6 +24,7 @@ import scala.util.Random
 import org.slf4j.LoggerFactory
 import scala.Array
 import org.apache.spark.HashPartitioner
+import GraphForceFunctions._
 
 object FloodBallDecomposition extends Timed {
 
@@ -73,8 +74,6 @@ object FloodBallDecomposition extends Timed {
       .groupByKey().map{case (node, inNeighs) => (node, inNeighs.distinct.toArray)}
   }
 
-  def forceEval(rdd: RDD[_]) = rdd.foreach(x => ())
-
   def floodBallDecomposition( graph: RDD[(NodeId, Neighbourhood)],
                               radius: Int,
                               centerProbability: Double)
@@ -113,8 +112,7 @@ object FloodBallDecomposition extends Timed {
 
     logger.info("Partitioning graph in {} partitions, using HashPartitioner", numPartitions)
 
-    graph.partitionBy(
-      new HashPartitioner(numPartitions))
+    graph.partitionBy(new HashPartitioner(numPartitions)).force()
   }
 
   def selectCenters(graph: RDD[(NodeId, Neighbourhood)], centerProbability: Double)
@@ -133,7 +131,7 @@ object FloodBallDecomposition extends Timed {
       })
 
     if(logger.isDebugEnabled) {
-      forceEval(centers)
+      centers.force()
       logger.debug("There are {} centers", numCenters.value)
     }
     centers
@@ -152,7 +150,7 @@ object FloodBallDecomposition extends Timed {
           (node, (neighs, Array()))
       }
     if(logger.isDebugEnabled()) {
-      forceEval(missing)
+      missing.force()
       logger.debug("There are {} uncolored nodes", cnt.value)
     }
     missing
@@ -194,7 +192,6 @@ object FloodBallDecomposition extends Timed {
         .mapPartitions({ dataIterator =>
           dataIterator.flatMap(sendColorsToCenters).toArray.distinct.iterator
         })
-//        .flatMap(sendColorsToCenters)
         .reduceByKey{ (a, b) => (a ++ b).distinct }
         .filter{ case (n, cs) => cs.contains(n) }
     }
