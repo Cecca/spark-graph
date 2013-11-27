@@ -60,8 +60,11 @@ object HyperAnf extends TextInputConverter {
         (nodeId, counter)
       }
 
-    log info "Forcing evaluation of initial counters"
-    counters.force()
+    log info "Partitioning and forcing evaluation of initial counters"
+    counters.partitionBy(graph.partitioner.get).force()
+
+    log.info("Graph partitioned with {}", graph.partitioner)
+    log.info("Counters partitioned with {}", counters.partitioner)
 
     var changed: Long = -1
     var iter = 0
@@ -84,14 +87,14 @@ object HyperAnf extends TextInputConverter {
         .reduceByKey(_ union _)
         .join(counters) // TODO maybe we can avoid this join
         .flatMap { case (nodeId, (newCounter, oldCounter)) =>
-        if ( newCounter != oldCounter ) {
-          changedNFacc.add(newCounter.size)
-          Seq((nodeId, newCounter))
-        } else {
-          stableNFacc.add(newCounter.size)
-          Seq()
+          if ( newCounter != oldCounter ) {
+            changedNFacc.add(newCounter.size)
+            Seq((nodeId, newCounter))
+          } else {
+            stableNFacc.add(newCounter.size)
+            Seq()
+          }
         }
-      }
 
       changed = counters.count()
       log info ("a total of {} nodes changed", changed)
