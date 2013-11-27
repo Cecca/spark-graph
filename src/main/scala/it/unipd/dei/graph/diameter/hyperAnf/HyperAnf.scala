@@ -61,8 +61,7 @@ object HyperAnf extends TextInputConverter {
       }
 
     log info "Forcing evaluation of initial counters"
-    val initialSum = counters.map{case (_,cnt) => cnt.size}.reduce( _ + _ )
-    log info ("Initial sum of counters is {}", initialSum)
+    counters.force()
 
     var changed: Long = -1
     var iter = 0
