@@ -54,14 +54,14 @@ object HyperAnf extends TextInputConverter {
     log info "init counter"
     // init counters
     var counters: RDD[(NodeId, HyperLogLogCounter)] =
-      graph map { case (nodeId, _) =>
+      graph.map({ case (nodeId, _) =>
         val counter = new HyperLogLogCounter(bcastNumBits.value, bcastSeed.value)
         counter.add(nodeId)
         (nodeId, counter)
-      }
+      }).partitionBy(graph.partitioner.get)
 
     log info "Partitioning and forcing evaluation of initial counters"
-    counters.partitionBy(graph.partitioner.get).force()
+    counters.force()
 
     log.info("Graph partitioned with {}", graph.partitioner)
     log.info("Counters partitioned with {}", counters.partitioner)
