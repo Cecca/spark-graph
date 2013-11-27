@@ -49,7 +49,8 @@ object Timer {
   def timed[R](name: String)(f: => R): R = {
     val ctx = registry.timer(name).time()
     val ret = f
-    ctx.stop()
+    val elapsed = ctx.stop()
+    logger.info("{} time: {}", name, elapsed)
     ret
   }
 
@@ -58,7 +59,8 @@ object Timer {
       val ctx = registry.timer(name).time()
       val ret = f
       ret.foreach(x => {}) // force evaluation
-      ctx.stop()
+      val elapsed = ctx.stop()
+      logger.info("{} time: {}", name, elapsed)
       ret
     } else {
       f
