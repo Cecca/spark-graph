@@ -26,7 +26,7 @@ import org.apache.spark.SparkContext
 import org.slf4j.LoggerFactory
 import it.unipd.dei.graph.decompositions.RandomizedBallDecomposition._
 import it.unipd.dei.graph.decompositions.SimpleRandomizedBallDecomposition._
-import scala.math.ceil
+import scala.math.{ceil, round}
 import GraphForceFunctions._
 import Timer._
 
@@ -144,7 +144,9 @@ object Tool extends TextInputConverter with KryoSerialization with MatToAdjConve
           conf.floodBallDec.radius(),
           conf.floodBallDec.probability())
 
-        logger info ("Quotient cardinality: {}", quotient.count())
+        val quotientardinality = quotient.count()
+
+        logger info ("Quotient cardinality: {}", quotientardinality)
 
         logger info "Computing diameter"
         val nf = timed("hyperANF") {
@@ -154,6 +156,9 @@ object Tool extends TextInputConverter with KryoSerialization with MatToAdjConve
 
         logger info ("Effective diameter at 1 = %f".format(effDiam))
         logger info ("Diameter of graph is ceil({}) = {}", effDiam, ceil(effDiam))
+
+        println("diameter %d".format(round(effDiam)))
+        println("cardinality %d".format(quotientardinality))
 
         conf.floodBallDec.output.get match {
           case Some(out) => quotient.saveAsTextFile(out)
