@@ -192,7 +192,8 @@ object FloodBallDecomposition {
         .mapPartitions({ dataIterator =>
           dataIterator.flatMap(sendColorsToCenters).toArray.distinct.iterator
         })
-        .reduceByKey{ (a, b) => (a ++ b).distinct }
+        .groupByKey()
+        .mapValues({ vals => vals.reduce(_ ++ _).distinct })
         .filter{ case (n, cs) => cs.contains(n) }
     }
 
