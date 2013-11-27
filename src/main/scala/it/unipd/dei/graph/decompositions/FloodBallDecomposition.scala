@@ -183,12 +183,10 @@ object FloodBallDecomposition extends Timed {
 
   def shrinkGraph(graph: RDD[(NodeId, Neighbourhood)], colors: RDD[(NodeId, ColorList)])
   : RDD[(NodeId, Neighbourhood)] = {
-    logger.info("Transposing original graph")
-    val transposedGraph = transpose(graph)
 
     logger.info("Sending colors to predecessors in transposed graph")
     val colored = timedForce("sending-colors", false) {
-      transposedGraph.join(colors)
+      graph.join(colors)
         .mapPartitions({ dataIterator =>
           dataIterator.flatMap(sendColorsToCenters).toArray.distinct.iterator
         })
@@ -196,8 +194,7 @@ object FloodBallDecomposition extends Timed {
         .filter{ case (n, cs) => cs.contains(n) }
     }
 
-    logger.info("Transposing colored graph to get the quotient")
-    transpose(colored)
+    colored
   }
 
 }
