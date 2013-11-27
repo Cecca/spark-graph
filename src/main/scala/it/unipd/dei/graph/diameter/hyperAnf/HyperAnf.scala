@@ -17,7 +17,7 @@
 
 package it.unipd.dei.graph.diameter.hyperAnf
 
-import org.apache.spark.{Accumulator, SparkContext}
+import org.apache.spark.{HashPartitioner, Accumulator, SparkContext}
 import org.apache.spark.SparkContext._
 import it.unipd.dei.graph.{TextInputConverter, NodeId, Neighbourhood}
 import scala.collection.mutable
@@ -127,7 +127,7 @@ object HyperAnf extends TextInputConverter {
       sc.textFile(input, nSplits).map(convertAdj).force().cache()
     } getOrElse {
       sc.textFile(input).map(convertAdj).force().cache()
-    }
+    }.partitionBy(new HashPartitioner(sc.defaultMinSplits))
 
     hyperAnf(sc, graph, numBits, maxIter, minSplits, seed)
 
