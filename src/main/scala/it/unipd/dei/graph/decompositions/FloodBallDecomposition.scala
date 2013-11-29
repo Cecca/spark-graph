@@ -190,9 +190,7 @@ object FloodBallDecomposition {
     val colored = timedForce("sending-colors", false) {
 
       colors
-        .mapPartitions({ dataIterator =>
-          dataIterator.flatMap(sendColorsToCenters).toArray.distinct.iterator
-        })
+        .flatMap(sendColorsToCenters)
         .groupByKey()
         .mapValues({ vals => vals.reduce(_ ++ _).distinct })
         .filter{ case (n, cs) => cs.contains(n) }
