@@ -142,7 +142,7 @@ object Tool extends TextInputConverter with KryoSerialization with MatToAdjConve
         val quotient = floodBallDecomposition(
           graph,
           conf.floodBallDec.radius(),
-          conf.floodBallDec.probability())
+          conf.floodBallDec.probability()).cache()
 
         val quotientardinality = quotient.count()
 
