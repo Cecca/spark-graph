@@ -47,9 +47,9 @@ object FloodBallDecomposition {
         Seq()
   }
 
-  def sendColorsToCenters(data: (NodeId, (Neighbourhood, ColorList)))
+  def sendColorsToCenters(data: (NodeId, (ColorList)))
   : TraversableOnce[(NodeId, ColorList)] = data match {
-    case (node, (neighs, cList)) => cList.map((_, cList))
+    case (node, (cList)) => cList.map((_, cList))
   }
 
   def mergeColors(data: (NodeId, ( (Neighbourhood, ColorList) , Option[ColorList] )))
@@ -104,7 +104,7 @@ object FloodBallDecomposition {
       val colors = extractColors(finalColoredGraph).reduceByKey(merge)
 
       // shrink graph
-      shrinkGraph(partitionedGraph, colors)
+      shrinkGraph(colors)
     }
   }
 
@@ -183,19 +183,19 @@ object FloodBallDecomposition {
     centers.map{case (node, (_, colors)) => (node, colors)}
   }
 
-  def shrinkGraph(graph: RDD[(NodeId, Neighbourhood)], colors: RDD[(NodeId, ColorList)])
+  def shrinkGraph(colors: RDD[(NodeId, ColorList)])
   : RDD[(NodeId, Neighbourhood)] = {
 
-    logger.info("Sending colors to predecessors in transposed graph")
+    logger.info("Sending colors to predecessors graph")
     val colored = timedForce("sending-colors", false) {
 
-      graph.join(colors)
-           .mapPartitions({ dataIterator =>
-              dataIterator.flatMap(sendColorsToCenters).toArray.distinct.iterator
-            })
-           .groupByKey()
-           .mapValues({ vals => vals.reduce(_ ++ _).distinct })
-           .filter{ case (n, cs) => cs.contains(n) }
+      colors
+        .mapPartitions({ dataIterator =>
+          dataIterator.flatMap(sendColorsToCenters).toArray.distinct.iterator
+        })
+        .groupByKey()
+        .mapValues({ vals => vals.reduce(_ ++ _).distinct })
+        .filter{ case (n, cs) => cs.contains(n) }
     }
 
     colored
