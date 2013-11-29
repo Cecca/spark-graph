@@ -23,11 +23,9 @@ import org.apache.spark.SparkContext._
 import scala.util.Random
 import org.slf4j.LoggerFactory
 import scala.Array
-import org.apache.spark.{HashPartitioner, Partitioner}
+import org.apache.spark.HashPartitioner
 import GraphForceFunctions._
 import Timer._
-import scala.collection.mutable.Map
-import org.apache.spark.util.Utils
 
 object FloodBallDecomposition {
 
@@ -115,7 +113,7 @@ object FloodBallDecomposition {
 
     logger.info("Partitioning graph in {} partitions, using HashPartitioner", numPartitions)
 
-    graph.partitionBy(new LoggingHashPartitioner(numPartitions)).force()
+    graph.partitionBy(new HashPartitioner(numPartitions)).force()
   }
 
   def selectCenters(graph: RDD[(NodeId, Neighbourhood)], centerProbability: Double)
@@ -198,31 +196,6 @@ object FloodBallDecomposition {
     }
 
     colored
-  }
-
-  class LoggingHashPartitioner(partitions: Int) extends Partitioner {
-    def numPartitions = partitions
-
-    def nonNegativeMod(x: Int, mod: Int): Int = {
-      val rawMod = x % mod
-      rawMod + (if (rawMod < 0) mod else 0)
-    }
-
-    def getPartition(key: Any): Int = key match {
-      case null => 0
-      case _ => {
-        val m = nonNegativeMod(key.hashCode, numPartitions)
-        logger.info("Got partition {} for key {}", m, key)
-        m
-      }
-    }
-
-    override def equals(other: Any): Boolean = other match {
-      case h: HashPartitioner =>
-        h.numPartitions == numPartitions
-      case _ =>
-        false
-    }
   }
 
 }
