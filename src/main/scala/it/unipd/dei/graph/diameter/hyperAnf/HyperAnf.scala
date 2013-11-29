@@ -94,7 +94,7 @@ object HyperAnf extends TextInputConverter {
             stableNFacc.add(newCounter.size)
             Seq()
           }
-        }
+        }.cache()
 
       changed = counters.count()
       log info ("a total of {} nodes changed", changed)
