@@ -26,6 +26,7 @@ import scala.Array
 import org.apache.spark.HashPartitioner
 import GraphForceFunctions._
 import Timer._
+import scala.collection.mutable.Map
 
 object FloodBallDecomposition {
 
@@ -182,17 +183,30 @@ object FloodBallDecomposition {
     centers.map{case (node, (_, colors)) => (node, colors)}
   }
 
+  val blockOperation = true
+
   def shrinkGraph(graph: RDD[(NodeId, Neighbourhood)], colors: RDD[(NodeId, ColorList)])
   : RDD[(NodeId, Neighbourhood)] = {
 
     logger.info("Sending colors to predecessors in transposed graph")
     val colored = timedForce("sending-colors", false) {
 
-      graph.join(colors)
-        .mapPartitions({ dataIterator =>
-          dataIterator.flatMap(sendColorsToCenters).toArray.distinct.iterator
-        })
-        .groupByKey()
+      val joined = graph.join(colors)
+      val mapped =
+        if(blockOperation) {
+          joined.mapPartitions({ dataIterator =>
+            val localNodes = Map[NodeId, ColorList]()
+            dataIterator.flatMap(sendColorsToCenters).foreach { case (node, nodeColors) =>
+              localNodes(node) = ( nodeColors ++ localNodes.getOrElse(node, Array()) ).distinct
+            }
+            localNodes.iterator
+          })
+        } else {
+          joined.mapPartitions({ dataIterator =>
+            dataIterator.flatMap(sendColorsToCenters).toArray.distinct.iterator
+          })
+        }
+      mapped.groupByKey()
         .mapValues({ vals => vals.reduce(_ ++ _).distinct })
         .filter{ case (n, cs) => cs.contains(n) }
     }
