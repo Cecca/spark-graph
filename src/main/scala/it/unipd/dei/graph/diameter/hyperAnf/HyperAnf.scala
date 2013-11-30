@@ -120,26 +120,28 @@ object HyperAnf extends TextInputConverter {
     val partitioner = new HashPartitioner(splits)
 
     var vertices: RDD[(NodeId, HyperAnfVertex)] =
-      initGraph(inputGraph, numBits, seed).partitionBy(partitioner).cache()
+      initGraph(inputGraph, numBits, seed).partitionBy(partitioner).cache().force()
     var activeNodes = 1L // it suffices that it's > 0
 
     val neighbourhoodFunction = mutable.MutableList[Double]()
 
     neighbourhoodFunction += computeNfElem(vertices)
 
-    var iteration = 1
-    while (iteration < maxIter && activeNodes > 0) {
-      timed("hyper-anf-iteration") {
-        log.info("Iteration {}", iteration)
-        val (newVertices, nfElem, acNodes) = superStep(vertices)
-        neighbourhoodFunction += nfElem
+    timed("hyper-anf") {
+      var iteration = 1
+      while (iteration < maxIter && activeNodes > 0) {
+        timed("hyper-anf-iteration") {
+          log.info("Iteration {}", iteration)
+          val (newVertices, nfElem, acNodes) = superStep(vertices)
+          neighbourhoodFunction += nfElem
 
-        vertices = newVertices.cache()
+          vertices = newVertices.cache()
 
-        activeNodes = acNodes
-        log.info("There are {} active nodes", activeNodes)
+          activeNodes = acNodes
+          log.info("There are {} active nodes", activeNodes)
 
-        iteration += 1
+          iteration += 1
+        }
       }
     }
 

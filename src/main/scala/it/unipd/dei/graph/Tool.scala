@@ -149,7 +149,7 @@ object Tool extends TextInputConverter with KryoSerialization with MatToAdjConve
         logger info ("Quotient cardinality: {}", quotientardinality)
 
         logger info "Computing diameter"
-        val nf = timed("hyperANF") {
+        val nf = timed("hyperANF-tool") {
           hyperAnf(quotient, 6, 25, None, System.nanoTime() )
         }
         val effDiam = effectiveDiameter(nf, 1)
