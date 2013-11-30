@@ -29,6 +29,7 @@ import it.unipd.dei.graph.decompositions.SimpleRandomizedBallDecomposition._
 import scala.math.{ceil, round}
 import GraphForceFunctions._
 import Timer._
+import org.apache.spark.storage.StorageLevel
 
 /**
  * Main entry point for the entire application
@@ -132,10 +133,10 @@ object Tool extends TextInputConverter with KryoSerialization with MatToAdjConve
         logger info "Loading dataset"
         val graph = conf.floodBallDec.splits.get.map { numSplits =>
           conf.floodBallDec.sc.textFile(conf.floodBallDec.input(), numSplits)
-            .map(convertAdj).force().cache()
+            .map(convertAdj).force().persist(StorageLevel.MEMORY_ONLY_SER)
         } getOrElse {
           conf.floodBallDec.sc.textFile(conf.floodBallDec.input())
-            .map(convertAdj).force().cache()
+            .map(convertAdj).force().persist(StorageLevel.MEMORY_ONLY_SER)
         }
 
         logger info "Computing randomized ball decomposition"

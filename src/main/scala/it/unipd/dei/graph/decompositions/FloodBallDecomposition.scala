@@ -26,6 +26,7 @@ import scala.Array
 import org.apache.spark.HashPartitioner
 import GraphForceFunctions._
 import Timer._
+import org.apache.spark.storage.StorageLevel
 
 object FloodBallDecomposition {
 
@@ -141,7 +142,7 @@ object FloodBallDecomposition {
       centers.force()
       logger.debug("There are {} centers", numCenters.value)
     }
-    centers
+    centers.persist(StorageLevel.MEMORY_ONLY_SER)
   }
 
   def selectMissingCenters(centers: RDD[(NodeId, (Neighbourhood, ColorList))])
@@ -160,7 +161,7 @@ object FloodBallDecomposition {
       missing.force()
       logger.debug("There are {} uncolored nodes", cnt.value)
     }
-    missing
+    missing.persist(StorageLevel.MEMORY_ONLY_SER)
   }
 
   def propagateColors(centers: RDD[(NodeId, (Neighbourhood, ColorList))], radius: Int)
