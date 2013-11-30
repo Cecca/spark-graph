@@ -72,19 +72,23 @@ object HyperAnf extends TextInputConverter {
       if(vertex.active)
         vertex.neighbours.map((_, vertex.counter)) :+ (id, vertex.counter)
       else
-        Seq((id, vertex.counter))
+        Seq()
     })
     // combine messages by key
     val combinedMsgs = msgs.combineByKey(createCombiner, mergeCounters, mergeCounters)
 
     // associate messages and vertices, updating the counter
     // TODO, try to swap the datasets
-    val grouped = vertices.join(combinedMsgs)
+    val grouped = vertices.leftOuterJoin(combinedMsgs)
 
-    grouped.mapValues({case (vertex, counter) =>
-      if (vertex.active && counter != vertex.counter) {
-        HyperAnfVertex.keepActive(vertex, counter)
-      } else {
+    grouped.mapValues({case (vertex, maybeCounter) =>
+      maybeCounter.map{ counter =>
+        if (vertex.active && counter != vertex.counter) {
+          HyperAnfVertex.keepActive(vertex, counter)
+        } else {
+          HyperAnfVertex.makeInactive(vertex)
+        }
+      }.getOrElse {
         HyperAnfVertex.makeInactive(vertex)
       }
     })
