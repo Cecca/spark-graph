@@ -150,7 +150,7 @@ object Tool extends TextInputConverter with KryoSerialization with MatToAdjConve
 
         logger info "Computing diameter"
         val nf = timed("hyperANF") {
-          hyperAnf( conf.floodBallDec.sc, quotient, 6, 25, None, System.nanoTime() )
+          hyperAnf(quotient, 6, 25, None, System.nanoTime() )
         }
         val effDiam = effectiveDiameter(nf, 1)
 

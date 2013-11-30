@@ -38,6 +38,17 @@ object HyperAnf extends TextInputConverter {
                         val neighbours: Neighbourhood,
                         val counter: HyperLogLogCounter)
 
+  object HyperAnfVertex {
+    def keepActive(vertex: HyperAnfVertex, counter: HyperLogLogCounter)
+    : HyperAnfVertex = {
+      new HyperAnfVertex(true, vertex.neighbours, counter)
+    }
+
+    def makeInactive(vertex: HyperAnfVertex): HyperAnfVertex = {
+      new HyperAnfVertex(false, vertex.neighbours, vertex.counter)
+    }
+  }
+
   private def initGraph(
                  inputGraph: RDD[(NodeId, Neighbourhood)],
                  numBits: Int, seed: Long)
@@ -47,6 +58,34 @@ object HyperAnf extends TextInputConverter {
         val counter = new HyperLogLogCounter(numBits, seed)
         counter.add(node)
         (node, new HyperAnfVertex(true, neighbourhood, counter))
+    })
+  }
+
+  def createCombiner(counter: HyperLogLogCounter) = counter
+
+  def mergeCounters(a: HyperLogLogCounter, b: HyperLogLogCounter) = a union b
+
+  def superStep(vertices: RDD[(NodeId, HyperAnfVertex)]): RDD[(NodeId, HyperAnfVertex)] = {
+    // compute messages from vertices
+    val msgs = vertices.flatMap({case (id, vertex) =>
+      if(vertex.active)
+        vertex.neighbours.map((_, vertex.counter)) :+ (id, vertex.counter)
+      else
+        Seq()
+    })
+    // combine messages by key
+    val combinedMsgs = msgs.combineByKey(createCombiner, mergeCounters, mergeCounters)
+
+    // associate messages and vertices, updating the counter
+    // TODO, try to swap the datasets
+    val grouped = vertices.join(combinedMsgs)
+
+    grouped.mapValues({case (vertex, counter) =>
+      if (counter != vertex.counter) {
+        HyperAnfVertex.keepActive(vertex, counter)
+      } else {
+        HyperAnfVertex.makeInactive(vertex)
+      }
     })
   }
 
@@ -63,9 +102,20 @@ object HyperAnf extends TextInputConverter {
     val partitioner = new HashPartitioner(splits)
 
     var vertices: RDD[(NodeId, HyperAnfVertex)] =
-      initGraph(inputGraph, numBits, seed).partitionBy(partitioner).cache()
+      initGraph(inputGraph, numBits, seed).partitionBy(partitioner)
+    var changedNodes = 1L // it suffices that it's > 0
 
-    null
+    val neighbourhoodFunction = mutable.MutableList[Double]()
+
+    var iteration = 0
+    do {
+      neighbourhoodFunction += vertices.map({case (id, vertex) => vertex.counter.size}).reduce(_ + _)
+      val newVertices = superStep(vertices)
+      vertices = newVertices
+      iteration += 1
+    } while (iteration < maxIter && changedNodes > 0)
+
+    neighbourhoodFunction.toArray
   }
 
   def hyperAnf( sc: SparkContext,
