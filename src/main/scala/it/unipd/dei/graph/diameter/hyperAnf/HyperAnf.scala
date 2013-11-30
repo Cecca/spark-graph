@@ -36,7 +36,7 @@ object HyperAnf extends TextInputConverter {
   class HyperAnfVertex(
                         val active: Boolean,
                         val neighbours: Neighbourhood,
-                        val counter: HyperLogLogCounter)
+                        val counter: HyperLogLogCounter) extends Serializable
 
   object HyperAnfVertex {
     def keepActive(vertex: HyperAnfVertex, counter: HyperLogLogCounter)
@@ -109,9 +109,13 @@ object HyperAnf extends TextInputConverter {
 
     var iteration = 0
     do {
+      log.info("Iteration {}", iteration)
       neighbourhoodFunction += vertices.map({case (id, vertex) => vertex.counter.size}).reduce(_ + _)
       val newVertices = superStep(vertices)
       vertices = newVertices
+
+      changedNodes = vertices.filter({case (_, vertex) => vertex.active}).count()
+
       iteration += 1
     } while (iteration < maxIter && changedNodes > 0)
 
