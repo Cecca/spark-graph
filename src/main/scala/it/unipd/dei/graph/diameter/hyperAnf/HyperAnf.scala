@@ -111,10 +111,11 @@ object HyperAnf extends TextInputConverter {
     var iteration = 0
     do {
       timed("hyper-anf-iteration") {
-      log.info("Iteration {}", iteration)
+        log.info("Iteration {}", iteration)
         neighbourhoodFunction += vertices.map({case (id, vertex) => vertex.counter.size}).reduce(_ + _)
         val newVertices = superStep(vertices)
-        vertices = newVertices
+
+        vertices = newVertices.cache()
 
         activeNodes = vertices.filter({case (_, vertex) => vertex.active}).count()
         log.info("There are {} active nodes", activeNodes)
