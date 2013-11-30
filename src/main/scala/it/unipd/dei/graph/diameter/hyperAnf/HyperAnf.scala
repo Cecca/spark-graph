@@ -33,85 +33,27 @@ object HyperAnf extends TextInputConverter {
 
   private val log = LoggerFactory.getLogger("algorithm.HyperAnf")
 
-  private val tmpDir = new File(System.getProperty("spark.local.dir", "/tmp"))
+  class HyperAnfVertex(
+                        val active: Boolean,
+                        val neighbours: Neighbourhood,
+                        val counter: HyperLogLogCounter)
 
-  def sendCounters(data: (NodeId, (Neighbourhood, HyperLogLogCounter)))
-  : TraversableOnce[(NodeId, HyperLogLogCounter)] = data match {
-    case (nodeId, (neighbourhood, counter)) =>
-      neighbourhood.map((_, counter)) :+ (nodeId, counter)
-  }
-
-  def hyperAnf( sc: SparkContext,
-                graph: RDD[(NodeId, Neighbourhood)],
+  def hyperAnf(
+                inputGraph: RDD[(NodeId, Neighbourhood)],
                 numBits: Int,
                 maxIter: Int,
                 minSplits: Option[Int],
                 seed: Long)// seed is here for testing
   : NeighbourhoodFunction = {
-    val bcastNumBits = sc.broadcast(numBits)
-    val bcastSeed = sc.broadcast(seed)
 
-    log info "init counter"
-    // init counters
-    var counters: RDD[(NodeId, HyperLogLogCounter)] =
-      graph.map({ case (nodeId, _) =>
-        val counter = new HyperLogLogCounter(bcastNumBits.value, bcastSeed.value)
-        counter.add(nodeId)
-        (nodeId, counter)
-      }).partitionBy(graph.partitioner.get)
+    val splits = minSplits.getOrElse(inputGraph.sparkContext.defaultParallelism)
 
-    log info "Partitioning and forcing evaluation of initial counters"
-    counters.force()
+    var vertices = inputGraph.mapValues({ neighbourhood =>
+      val counter = new HyperLogLogCounter(numBits, seed)
+      new HyperAnfVertex(true, neighbourhood, counter)
+    })
 
-    log.info("Graph partitioned with {}", graph.partitioner)
-    log.info("Counters partitioned with {}", counters.partitioner)
-
-    var changed: Long = -1
-    var iter = 0
-    val neighbourhoodFunction: mutable.MutableList[Double] =
-      new mutable.MutableList[Double]
-
-    var stableNF: Double = 0.0
-
-    log info "start iterations"
-    while(changed != 0 && iter < maxIter) {
-      log info ("=== iteration {}", iter)
-
-      val changedNFacc: Accumulator[Double] = sc.accumulator(0.0)
-      val stableNFacc : Accumulator[Double] = sc.accumulator(0.0)
-
-      log info "updating counters"
-      counters = graph
-        .join(counters)
-        .flatMap(sendCounters)
-        .reduceByKey(_ union _)
-        .join(counters) // TODO maybe we can avoid this join
-        .flatMap { case (nodeId, (newCounter, oldCounter)) =>
-          if ( newCounter != oldCounter ) {
-            changedNFacc.add(newCounter.size)
-            Seq((nodeId, newCounter))
-          } else {
-            stableNFacc.add(newCounter.size)
-            Seq()
-          }
-        }.cache()
-
-      changed = counters.count()
-      log info ("a total of {} nodes changed", changed)
-
-      log info ("computing value of N({})", iter)
-      stableNF += stableNFacc.value
-
-      log debug ("stableNF is {}", stableNF)
-      log debug ("changedNF is {}", changedNFacc.value)
-
-      neighbourhoodFunction += stableNF + changedNFacc.value
-      log info ("N({}) is {}", iter, neighbourhoodFunction.last)
-
-      iter += 1
-    }
-
-    neighbourhoodFunction.toSeq
+    null
   }
 
   def hyperAnf( sc: SparkContext,
@@ -129,7 +71,7 @@ object HyperAnf extends TextInputConverter {
       sc.textFile(input).map(convertAdj).force().cache()
     }.partitionBy(new HashPartitioner(sc.defaultMinSplits))
 
-    hyperAnf(sc, graph, numBits, maxIter, minSplits, seed)
+    hyperAnf(graph, numBits, maxIter, minSplits, seed)
 
   }
 
