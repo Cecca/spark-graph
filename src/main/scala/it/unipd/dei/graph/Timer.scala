@@ -50,7 +50,7 @@ object Timer {
     val ctx = registry.timer(name).time()
     val ret = f
     val elapsed = ctx.stop()
-    logger.info("{} time: {}", name, elapsed)
+    logger.info("{} time: {}", name, elapsed*millisFactor)
     ret
   }
 

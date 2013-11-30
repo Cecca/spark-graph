@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory
 import java.io.File
 import org.apache.spark.rdd.RDD
 import it.unipd.dei.graph.GraphForceFunctions._
+import it.unipd.dei.graph.Timer._
 
 /**
  * Implementation of HyperANF with spark
@@ -81,10 +82,11 @@ object HyperAnf extends TextInputConverter {
     val grouped = vertices.join(combinedMsgs)
 
     grouped.mapValues({case (vertex, counter) =>
-      if (counter != vertex.counter) {
+      if (vertex.active && counter != vertex.counter) {
         HyperAnfVertex.keepActive(vertex, counter)
       } else {
-        HyperAnfVertex.makeInactive(vertex)
+        HyperAnfVertex.keepActive(vertex, counter)
+//        HyperAnfVertex.makeInactive(vertex)
       }
     })
   }
@@ -103,21 +105,24 @@ object HyperAnf extends TextInputConverter {
 
     var vertices: RDD[(NodeId, HyperAnfVertex)] =
       initGraph(inputGraph, numBits, seed).partitionBy(partitioner)
-    var changedNodes = 1L // it suffices that it's > 0
+    var activeNodes = 1L // it suffices that it's > 0
 
     val neighbourhoodFunction = mutable.MutableList[Double]()
 
     var iteration = 0
     do {
+      timed("hyper-anf-iteration") {
       log.info("Iteration {}", iteration)
-      neighbourhoodFunction += vertices.map({case (id, vertex) => vertex.counter.size}).reduce(_ + _)
-      val newVertices = superStep(vertices)
-      vertices = newVertices
+        neighbourhoodFunction += vertices.map({case (id, vertex) => vertex.counter.size}).reduce(_ + _)
+        val newVertices = superStep(vertices)
+        vertices = newVertices
 
-      changedNodes = vertices.filter({case (_, vertex) => vertex.active}).count()
+        activeNodes = vertices.filter({case (_, vertex) => vertex.active}).count()
+        log.info("There are {} active nodes", activeNodes)
 
-      iteration += 1
-    } while (iteration < maxIter && changedNodes > 0)
+        iteration += 1
+      }
+    } while (iteration < maxIter && activeNodes > 0)
 
     neighbourhoodFunction.toArray
   }
