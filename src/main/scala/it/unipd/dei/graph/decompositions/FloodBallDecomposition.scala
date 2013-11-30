@@ -80,6 +80,12 @@ object FloodBallDecomposition {
                               centerProbability: Double)
   : RDD[(NodeId, Neighbourhood)] = {
 
+    if (radius == 0) {
+      println("flood-ball-decomposition 0") // this line is for log mining with the python script
+      logger.info("Ball decomposition of radius 0 is the graph itself!")
+      return graph
+    }
+
     val partitionedGraph = partition(graph)
 
     timedForce("flood-ball-decomposition") {
