@@ -72,7 +72,7 @@ object HyperAnf extends TextInputConverter {
       if(vertex.active)
         vertex.neighbours.map((_, vertex.counter)) :+ (id, vertex.counter)
       else
-        Seq()
+        Seq((id, vertex.counter))
     })
     // combine messages by key
     val combinedMsgs = msgs.combineByKey(createCombiner, mergeCounters, mergeCounters)
@@ -85,8 +85,7 @@ object HyperAnf extends TextInputConverter {
       if (vertex.active && counter != vertex.counter) {
         HyperAnfVertex.keepActive(vertex, counter)
       } else {
-        HyperAnfVertex.keepActive(vertex, counter)
-//        HyperAnfVertex.makeInactive(vertex)
+        HyperAnfVertex.makeInactive(vertex)
       }
     })
   }
