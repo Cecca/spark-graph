@@ -38,20 +38,32 @@ object HyperAnf extends TextInputConverter {
                         val neighbours: Neighbourhood,
                         val counter: HyperLogLogCounter)
 
+  private def initGraph(
+                 inputGraph: RDD[(NodeId, Neighbourhood)],
+                 numBits: Int, seed: Long)
+  : RDD[(NodeId, HyperAnf.HyperAnfVertex)] = {
+    inputGraph.map({
+      case (node, neighbourhood) =>
+        val counter = new HyperLogLogCounter(numBits, seed)
+        counter.add(node)
+        (node, new HyperAnfVertex(true, neighbourhood, counter))
+    })
+  }
+
   def hyperAnf(
                 inputGraph: RDD[(NodeId, Neighbourhood)],
                 numBits: Int,
                 maxIter: Int,
-                minSplits: Option[Int],
+                numPartitions: Option[Int],
                 seed: Long)// seed is here for testing
   : NeighbourhoodFunction = {
 
-    val splits = minSplits.getOrElse(inputGraph.sparkContext.defaultParallelism)
+    val splits = numPartitions.getOrElse(inputGraph.sparkContext.defaultParallelism)
 
-    var vertices = inputGraph.mapValues({ neighbourhood =>
-      val counter = new HyperLogLogCounter(numBits, seed)
-      new HyperAnfVertex(true, neighbourhood, counter)
-    })
+    val partitioner = new HashPartitioner(splits)
+
+    var vertices: RDD[(NodeId, HyperAnfVertex)] =
+      initGraph(inputGraph, numBits, seed).partitionBy(partitioner).cache()
 
     null
   }
