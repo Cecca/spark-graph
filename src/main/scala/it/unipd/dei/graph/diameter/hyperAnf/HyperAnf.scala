@@ -66,7 +66,8 @@ object HyperAnf extends TextInputConverter {
 
   def mergeCounters(a: HyperLogLogCounter, b: HyperLogLogCounter) = a union b
 
-  def superStep(vertices: RDD[(NodeId, HyperAnfVertex)]): RDD[(NodeId, HyperAnfVertex)] = {
+  def superStep(vertices: RDD[(NodeId, HyperAnfVertex)])
+  : (RDD[(NodeId, HyperAnfVertex)], Double, Long) = {
     // compute messages from vertices
     val msgs = vertices.flatMap({case (id, vertex) =>
       if(vertex.active)
@@ -81,17 +82,29 @@ object HyperAnf extends TextInputConverter {
     // TODO, try to swap the datasets
     val grouped = vertices.leftOuterJoin(combinedMsgs)
 
-    grouped.mapValues({case (vertex, maybeCounter) =>
-      maybeCounter.map{ counter =>
-        if (vertex.active && counter != vertex.counter) {
-          HyperAnfVertex.keepActive(vertex, counter)
-        } else {
+    val activeNodesAcc = vertices.sparkContext.accumulator(0L)
+
+    val newVertices =
+      grouped.mapValues({case (vertex, maybeCounter) =>
+        maybeCounter.map{ counter =>
+          if (vertex.active && counter != vertex.counter) {
+            activeNodesAcc += 1
+            HyperAnfVertex.keepActive(vertex, counter)
+          } else {
+            HyperAnfVertex.makeInactive(vertex)
+          }
+        }.getOrElse {
           HyperAnfVertex.makeInactive(vertex)
         }
-      }.getOrElse {
-        HyperAnfVertex.makeInactive(vertex)
-      }
-    })
+      })
+
+    val nf = computeNfElem(newVertices)
+
+    (newVertices, nf, activeNodesAcc.value)
+  }
+
+  def computeNfElem(vertices: RDD[(NodeId, HyperAnfVertex)]): Double = {
+    vertices.map({case (id, vertex) => vertex.counter.size}).reduce(_ + _)
   }
 
   def hyperAnf(
@@ -107,26 +120,28 @@ object HyperAnf extends TextInputConverter {
     val partitioner = new HashPartitioner(splits)
 
     var vertices: RDD[(NodeId, HyperAnfVertex)] =
-      initGraph(inputGraph, numBits, seed).partitionBy(partitioner)
+      initGraph(inputGraph, numBits, seed).partitionBy(partitioner).cache()
     var activeNodes = 1L // it suffices that it's > 0
 
     val neighbourhoodFunction = mutable.MutableList[Double]()
 
-    var iteration = 0
-    do {
+    neighbourhoodFunction += computeNfElem(vertices)
+
+    var iteration = 1
+    while (iteration < maxIter && activeNodes > 0) {
       timed("hyper-anf-iteration") {
         log.info("Iteration {}", iteration)
-        neighbourhoodFunction += vertices.map({case (id, vertex) => vertex.counter.size}).reduce(_ + _)
-        val newVertices = superStep(vertices)
+        val (newVertices, nfElem, acNodes) = superStep(vertices)
+        neighbourhoodFunction += nfElem
 
         vertices = newVertices.cache()
 
-        activeNodes = vertices.filter({case (_, vertex) => vertex.active}).count()
+        activeNodes = acNodes
         log.info("There are {} active nodes", activeNodes)
 
         iteration += 1
       }
-    } while (iteration < maxIter && activeNodes > 0)
+    }
 
     neighbourhoodFunction.toArray
   }
