@@ -26,7 +26,6 @@ import java.io.File
 import org.apache.spark.rdd.RDD
 import it.unipd.dei.graph.GraphForceFunctions._
 import it.unipd.dei.graph.Timer._
-import org.apache.spark.storage.StorageLevel
 
 /**
  * Implementation of HyperANF with spark
@@ -121,7 +120,7 @@ object HyperAnf extends TextInputConverter {
     val partitioner = new HashPartitioner(splits)
 
     var vertices: RDD[(NodeId, HyperAnfVertex)] =
-      initGraph(inputGraph, numBits, seed).partitionBy(partitioner).persist(StorageLevel.MEMORY_ONLY_SER)
+      initGraph(inputGraph, numBits, seed).partitionBy(partitioner).cache()
     var activeNodes = 1L // it suffices that it's > 0
 
     val neighbourhoodFunction = mutable.MutableList[Double]()
@@ -135,7 +134,7 @@ object HyperAnf extends TextInputConverter {
         val (newVertices, nfElem, acNodes) = superStep(vertices)
         neighbourhoodFunction += nfElem
 
-        vertices = newVertices.persist(StorageLevel.MEMORY_ONLY_SER)
+        vertices = newVertices.cache()
 
         activeNodes = acNodes
         log.info("There are {} active nodes", activeNodes)
@@ -157,9 +156,9 @@ object HyperAnf extends TextInputConverter {
 
     log info "loading graph"
     val graph: RDD[(NodeId, Neighbourhood)] = minSplits map { nSplits =>
-      sc.textFile(input, nSplits).map(convertAdj).force().persist(StorageLevel.MEMORY_ONLY_SER)
+      sc.textFile(input, nSplits).map(convertAdj).force().cache()
     } getOrElse {
-      sc.textFile(input).map(convertAdj).force().persist(StorageLevel.MEMORY_ONLY_SER)
+      sc.textFile(input).map(convertAdj).force().cache()
     }.partitionBy(new HashPartitioner(sc.defaultMinSplits))
 
     hyperAnf(graph, numBits, maxIter, minSplits, seed)
