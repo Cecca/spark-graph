@@ -8,7 +8,8 @@
     </encoder>
   </appender>
 
-  <logger name="algorithm" level="DEBUG"/>
+  <logger name="graph-forcer" level="DEBUG"/>
+  <logger name="algorithm" level="INFO"/>
   <logger name="spark-graph" level="INFO"/>
   <logger name="timer" level="INFO"/>
 

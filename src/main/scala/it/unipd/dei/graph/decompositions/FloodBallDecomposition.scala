@@ -94,29 +94,26 @@ object FloodBallDecomposition {
     timedForce("flood-ball-decomposition") {
 
       logger.info("Selecting centers at random")
-      val centers = selectCenters(partitionedGraph, centerProbability)
+      val centers = selectCenters(partitionedGraph, centerProbability).forceAndDebug("Centers select")
 
       logger.info("Coloring randomly selected centers ball neighbours")
-      val coloredGraph = propagateColors(centers, radius)
+      val coloredGraph = propagateColors(centers, radius).forceAndDebug("First propagate colors")
       logger.debug("Randomly selected centers {}", coloredGraph.filter({case (n,cs) => cs.contains(n)}).count())
 
       logger.info("Selecting uncolored nodes as centers")
-      val missingCenters = selectMissingCenters(graph, coloredGraph)
+      val missingCenters = selectMissingCenters(graph, coloredGraph).forceAndDebug("Missin centers select")
 
       logger.info("Coloring neighbours of newly selected nodes")
-      val missingColors = propagateColors(missingCenters, radius)
+      val missingColors = propagateColors(missingCenters, radius).forceAndDebug("Second propagate colors")
       logger.debug("Uncolored nodes, now centers {}", missingColors.filter({case (n,cs) => cs.contains(n)}).count())
 
       logger.info("Performing union of the two datasets")
       val finalColoredGraph = coloredGraph.union(missingColors)
-        .combineByKey(createColorCombiner, mergeColorCombiners, mergeColorCombiners)
+        .combineByKey(createColorCombiner, mergeColorCombiners, mergeColorCombiners).forceAndDebug("Union")
       logger.debug("Total number of centers {}", finalColoredGraph.filter({case (n,cs) => cs.contains(n)}).count())
 
-//      logger.info("Extracting colors")
-//      val colors = extractColors(finalColoredGraph).reduceByKey(merge)
-
       // shrink graph
-      shrinkGraph(finalColoredGraph)
+      shrinkGraph(finalColoredGraph).forceAndDebug("Graph shrinking")
     }
   }
 
