@@ -66,6 +66,9 @@ object FloodBallDecomposition {
     a.toSet.union(b.toSet).toArray
   }
 
+  def createColorCombiner(colors: ColorList): ColorList = colors
+  def mergeColorCombiners(a: ColorList, b: ColorList): ColorList = (a ++ b).distinct
+
   // --------------------------------------------------------------------------
   // Functions on RDDs
 
@@ -95,21 +98,25 @@ object FloodBallDecomposition {
 
       logger.info("Coloring randomly selected centers ball neighbours")
       val coloredGraph = propagateColors(centers, radius)
+      logger.debug("Randomly selected centers {}", coloredGraph.filter({case (n,cs) => cs.contains(n)}).count())
 
       logger.info("Selecting uncolored nodes as centers")
-      val missingCenters = selectMissingCenters(coloredGraph)
+      val missingCenters = selectMissingCenters(graph, coloredGraph)
 
       logger.info("Coloring neighbours of newly selected nodes")
       val missingColors = propagateColors(missingCenters, radius)
+      logger.debug("Uncolored nodes, now centers {}", missingColors.filter({case (n,cs) => cs.contains(n)}).count())
 
       logger.info("Performing union of the two datasets")
       val finalColoredGraph = coloredGraph.union(missingColors)
+        .combineByKey(createColorCombiner, mergeColorCombiners, mergeColorCombiners)
+      logger.debug("Total number of centers {}", finalColoredGraph.filter({case (n,cs) => cs.contains(n)}).count())
 
-      logger.info("Extracting colors")
-      val colors = extractColors(finalColoredGraph).reduceByKey(merge)
+//      logger.info("Extracting colors")
+//      val colors = extractColors(finalColoredGraph).reduceByKey(merge)
 
       // shrink graph
-      shrinkGraph(colors)
+      shrinkGraph(finalColoredGraph)
     }
   }
 
@@ -124,13 +131,11 @@ object FloodBallDecomposition {
 
   def selectCenters(graph: RDD[(NodeId, Neighbourhood)], centerProbability: Double)
   : RDD[(NodeId, (Neighbourhood, ColorList))] = {
-    val numCenters = graph.sparkContext.accumulator[Long](0)
     val centers: RDD[(NodeId, (Neighbourhood, ColorList))] =
       graph.map({
         case (node, neighs) =>
           val isCenter = new Random().nextDouble() < centerProbability
           if (isCenter) {
-            numCenters.add(1)
             (node, (neighs, Array(node)))
           }
           else
@@ -138,33 +143,29 @@ object FloodBallDecomposition {
       })
 
     if(logger.isDebugEnabled) {
-      centers.force()
-      logger.debug("There are {} centers", numCenters.value)
+      logger.debug("There are {} centers", centers.filter({case (n, (_,cs)) => cs.contains(n)}).count())
     }
     centers
   }
 
-  def selectMissingCenters(centers: RDD[(NodeId, (Neighbourhood, ColorList))])
+  def selectMissingCenters(graph: RDD[(NodeId, Neighbourhood)], centers: RDD[(NodeId, ColorList)])
   : RDD[(NodeId, (Neighbourhood, ColorList))] = {
-    val cnt = centers.sparkContext.accumulator(0L)
-    val missing: RDD[(NodeId, (Neighbourhood, ColorList))] =
-      centers.map { case (node, (neighs, colors)) =>
+    val missing: RDD[(NodeId, ColorList)] =
+      centers.map { case (node, colors) =>
         if (colors.isEmpty) {
-          cnt.add(1)
-          (node, (neighs, Array(node)))
+          (node, Array(node))
         }
         else
-          (node, (neighs, Array()))
+          (node, Array())
       }
     if(logger.isDebugEnabled()) {
-      missing.force()
-      logger.debug("There are {} uncolored nodes", cnt.value)
+      logger.debug("There are {} uncolored nodes", missing.filter({case (n, cs) => cs.contains(n)}).count())
     }
-    missing
+    graph.join(missing)
   }
 
   def propagateColors(centers: RDD[(NodeId, (Neighbourhood, ColorList))], radius: Int)
-  : RDD[(NodeId, (Neighbourhood, ColorList))] = {
+  : RDD[(NodeId, ColorList)] = {
     var cnts = centers
     for(i <- 0 until radius) {
       val newColors = cnts.flatMap(sendColorsToNeighbours).reduceByKey(merge)
@@ -180,7 +181,7 @@ object FloodBallDecomposition {
       val coloredNodes = cnts.filter{case (_, (_,cs)) => cs.nonEmpty}.count()
       logger.debug("There are {} colored nodes", coloredNodes)
     }
-    cnts
+    cnts.mapValues({case (_, cs) => cs})
   }
 
   def extractColors(centers: RDD[(NodeId, (Neighbourhood, ColorList))])
@@ -193,7 +194,6 @@ object FloodBallDecomposition {
 
     logger.info("Sending colors to predecessors graph")
     val colored = timedForce("sending-colors", false) {
-
       colors
         .flatMap(sendColorsToCenters)
         .groupByKey()
