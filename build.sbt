@@ -12,7 +12,7 @@ scalacOptions += "-optimise"
 // multiple SparkContexts
 parallelExecution in Test := false
 
-libraryDependencies += "org.apache.spark" % "spark-core_2.9.3" % "0.8.0-incubating" excludeAll(
+libraryDependencies += "org.apache.spark" % "spark-core_2.9.3" % "0.9.0-incubating-SNAPSHOT" excludeAll(
       ExclusionRule("ch.qos.logback")
     )
 
