@@ -18,7 +18,6 @@
 package it.unipd.dei.graph.decompositions
 
 import it.unipd.dei.graph._
-import it.unipd.dei.graph.decompositions._
 import org.apache.spark.SparkContext._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.broadcast.Broadcast

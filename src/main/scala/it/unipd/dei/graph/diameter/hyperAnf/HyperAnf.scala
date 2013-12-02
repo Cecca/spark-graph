@@ -17,12 +17,11 @@
 
 package it.unipd.dei.graph.diameter.hyperAnf
 
-import org.apache.spark.{HashPartitioner, Accumulator, SparkContext}
+import org.apache.spark.{HashPartitioner, SparkContext}
 import org.apache.spark.SparkContext._
 import it.unipd.dei.graph.{TextInputConverter, NodeId, Neighbourhood}
 import scala.collection.mutable
 import org.slf4j.LoggerFactory
-import java.io.File
 import org.apache.spark.rdd.RDD
 import it.unipd.dei.graph.GraphForceFunctions._
 import it.unipd.dei.graph.Timer._

@@ -27,7 +27,7 @@ class GraphForceFunctions[T](val rdd: RDD[T]) {
   def forceAndDebug(message: String = ""): RDD[T] = {
     if(logger.isDebugEnabled) {
       val start = System.currentTimeMillis()
-      rdd.foreach(x => ())
+      rdd.cache().foreach(x => ())
       val end = System.currentTimeMillis()
       logger.debug("{} (RDD evaluated in {} milliseconds)", message, end - start)
       rdd
@@ -39,7 +39,7 @@ class GraphForceFunctions[T](val rdd: RDD[T]) {
   def forceAndDebugCount(message: String = ""): RDD[T] = {
     if(logger.isDebugEnabled) {
       val start = System.currentTimeMillis()
-      val cnt = rdd.count()
+      val cnt = rdd.cache().count()
       val end = System.currentTimeMillis()
       logger.debug("{} (RDD with {} elements evaluated in {} milliseconds)", message, cnt + "", (end - start) + "")
       rdd
