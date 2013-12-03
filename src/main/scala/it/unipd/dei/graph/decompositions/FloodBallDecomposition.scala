@@ -108,7 +108,8 @@ object FloodBallDecomposition {
 
       logger.info("Performing union of the two datasets")
       val finalColoredGraph = coloredGraph.union(missingColors)
-        .combineByKey(createColorCombiner, mergeColorCombiners, unionColorCombiners).forceAndDebug("Union")
+//        .combineByKey(createColorCombiner, mergeColorCombiners, unionColorCombiners)
+        .forceAndDebug("Union")
 
       // shrink graph
       shrinkGraph(finalColoredGraph).forceAndDebug("Graph shrinking")
@@ -184,19 +185,15 @@ object FloodBallDecomposition {
     centers.map{case (node, (_, colors)) => (node, colors)}
   }
 
-  def shrinkGraph(colors: RDD[(NodeId, ColorList)])
+  def shrinkGraph(colors: RDD[(NodeId, (Neighbourhood, ColorList))])
   : RDD[(NodeId, Neighbourhood)] = {
-
     logger.info("Sending colors to predecessors graph")
-    val colored = timedForce("sending-colors", false) {
-      colors
-        .flatMap(sendColorsToCenters)
-        .groupByKey()
-        .mapValues({ vals => vals.reduce(_ ++ _).distinct })
-        .filter{ case (n, cs) => cs.contains(n) }
-    }
 
-    colored
+    colors
+      .flatMap({ case (node, (neighs, cs)) => neighs.map({neigh => ((node, neigh), cs)}) })
+      .reduceByKey({(a,b) => (a ++ b).distinct})
+      .flatMap({case (_, cs) => cs.map((_, cs))})
+      .reduceByKey({(a,b) => (a ++ b).distinct})
   }
 
 }
