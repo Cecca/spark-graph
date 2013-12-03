@@ -157,7 +157,7 @@ object FloodBallDecomposition2 {
         logger.debug("Iteration {}: colored {} nodes", i, centCnt)
       }
       val grouped = cnts.leftOuterJoin(newColors)
-      cnts = grouped.map(mergeColors)
+      cnts = grouped.map(mergeColors).forceAndDebug(" - Iteration " + i)
     }
 
     if(logger.isDebugEnabled()) {
