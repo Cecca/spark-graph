@@ -19,7 +19,7 @@ package it.unipd.dei.graph
 
 import org.rogach.scallop.{Subcommand, ScallopConf}
 import it.unipd.dei.graph.decompositions.BallDecomposition._
-import it.unipd.dei.graph.decompositions.FloodBallDecomposition._
+import it.unipd.dei.graph.decompositions.FloodBallDecomposition2._
 import it.unipd.dei.graph.diameter.hyperAnf.HyperAnf._
 import it.unipd.dei.graph.serialization.KryoSerialization
 import org.apache.spark.SparkContext
