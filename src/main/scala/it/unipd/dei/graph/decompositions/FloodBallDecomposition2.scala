@@ -149,14 +149,17 @@ object FloodBallDecomposition2 {
 
   def propagateColors(centers: RDD[(NodeId, (Neighbourhood, ColorList))], radius: Int)
   : RDD[(NodeId, (Neighbourhood,ColorList))] = {
+
+    val partitioner = centers.partitioner.getOrElse(new HashPartitioner(centers.sparkContext.defaultParallelism))
+
     var cnts = centers
     for(i <- 0 until radius) {
-      val newColors = cnts.flatMap(sendColorsToNeighbours).reduceByKey(merge)
+      val newColors = cnts.flatMap(sendColorsToNeighbours).reduceByKey(partitioner, merge _)
       if(logger.isDebugEnabled) {
         val centCnt = newColors.count()
         logger.debug("Iteration {}: colored {} nodes", i, centCnt)
       }
-      val grouped = cnts.leftOuterJoin(newColors)
+      val grouped = cnts.leftOuterJoin(newColors, partitioner)
       cnts = grouped.map(mergeColors).forceAndDebug(" - Iteration " + i)
     }
 
