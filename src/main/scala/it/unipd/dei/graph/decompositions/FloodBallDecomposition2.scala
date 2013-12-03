@@ -150,6 +150,8 @@ object FloodBallDecomposition2 {
   def propagateColors(centers: RDD[(NodeId, (Neighbourhood, ColorList))], radius: Int)
   : RDD[(NodeId, (Neighbourhood,ColorList))] = {
 
+    logger.info("Propagating colors")
+
     val partitioner = centers.partitioner.getOrElse(new HashPartitioner(centers.sparkContext.defaultParallelism))
 
     var cnts = centers
