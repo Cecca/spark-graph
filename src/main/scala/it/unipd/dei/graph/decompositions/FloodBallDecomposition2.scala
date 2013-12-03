@@ -63,8 +63,7 @@ object FloodBallDecomposition2 {
   }
 
   def merge(a: Array[Color], b: Array[Color]): Array[Color] = {
-    // TODO merge with more efficiency
-    a.toSet.union(b.toSet).toArray
+    (a ++ b).distinct
   }
 
   def createColorCombiner(data: (Neighbourhood, ColorList)): ColorList = data._2
