@@ -18,6 +18,7 @@
 package it.unipd.dei.graph.decompositions
 
 import it.unipd.dei.graph._
+import scala.collection.mutable.MutableList
 import org.apache.spark.rdd.RDD
 import org.apache.spark.SparkContext._
 import scala.util.Random
@@ -189,11 +190,30 @@ object FloodBallDecomposition {
   : RDD[(NodeId, Neighbourhood)] = {
     logger.info("Sending colors to predecessors graph")
 
-    colors
-      .flatMap({ case (node, (neighs, cs)) => neighs.map({neigh => ((node, neigh), cs)}) })
-      .reduceByKey({(a,b) => (a ++ b).distinct})
-      .flatMap({case (_, cs) => cs.map((_, cs))})
-      .reduceByKey({(a,b) => (a ++ b).distinct})
+    val partitioner = new HashPartitioner(colors.sparkContext.defaultParallelism)
+
+    val parts = MutableList[RDD[(NodeId, Neighbourhood)]]()
+
+    val iterations = System.getProperty("ball.dec.iterations", "16").toInt
+
+    for(i <- 0 until iterations) {
+      logger.info("Iteration {}", i)
+      timed("Graph shrinking, iteration " + i){
+        parts +=
+          colors
+            .filter({case (n, _) => n % iterations == i})
+            .flatMap({ case (node, (neighs, cs)) => neighs.map({neigh => ((node, neigh), cs)}) })
+            .reduceByKey({(a,b) => (a ++ b).distinct})
+            .flatMap({case (_, cs) => cs.map((_, cs))})
+            .reduceByKey({(a,b) => (a ++ b).distinct})
+            .partitionBy(partitioner)
+            .cache().force()
+      }
+    }
+
+    logger.info("Performing union of parts")
+    parts.reduce(_ union _).reduceByKey({(a,b) => (a ++ b).distinct}).forceAndDebug("Union of parts")
+
   }
 
 }
