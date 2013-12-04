@@ -28,6 +28,10 @@ import org.apache.spark.HashPartitioner
 import GraphForceFunctions._
 import Timer._
 
+class FloodBallDecompositionVertex(val neighbours: Neighbourhood) extends Serializable {
+
+}
+
 object FloodBallDecomposition2 {
 
   private val logger = LoggerFactory.getLogger(

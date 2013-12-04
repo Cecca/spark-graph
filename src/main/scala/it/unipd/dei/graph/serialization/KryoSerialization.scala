@@ -22,6 +22,7 @@ import it.unipd.dei.graph.diameter.hyperAnf.HyperLogLogCounter
 import org.slf4j.LoggerFactory
 import org.apache.spark.serializer.KryoRegistrator
 import it.unipd.dei.graph.diameter.hyperAnf.HyperAnf.HyperAnfVertex
+import it.unipd.dei.graph.decompositions.FloodBallDecompositionVertex
 
 /**
  * Trait that enables kryo serialization and registers some classes
@@ -42,7 +43,8 @@ class GraphKryoRegistrator extends KryoRegistrator {
 
     val toRegister = List(
       new HyperLogLogCounter(4, 1234),
-      new HyperAnfVertex(true, Array(), new HyperLogLogCounter(4,1234))
+      new HyperAnfVertex(true, Array(), new HyperLogLogCounter(4,1234)),
+      new FloodBallDecompositionVertex(Array())
     )
 
     toRegister.foreach { e =>
