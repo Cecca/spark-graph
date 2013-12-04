@@ -26,6 +26,7 @@ import scala.Array
 import org.apache.spark.HashPartitioner
 import GraphForceFunctions._
 import Timer._
+import scala.collection.mutable
 
 class FloodBallDecompositionVertex(
                                     val neighbours: Neighbourhood,
@@ -139,14 +140,27 @@ object FloodBallDecomposition2 {
       
       val randomCentersColors = propagateColors(partitionedGraph, randomCenters, radius+1)
         .forceAndDebug("First propagate colors")
-      
-      val missingCenters = selectMissingCenters(partitionedGraph, randomCentersColors)
-        .forceAndDebugCount("Missing centers select")
 
-      val missingCentersColors = propagateColors(partitionedGraph, missingCenters, radius+1)
-        .forceAndDebug("Second propagate colors")
+      val centers = mutable.MutableList(randomCentersColors)
+      var alreadyCovered = randomCentersColors
+      var missingCenters: RDD[(NodeId, FloodBallDecompositionVertex)] = ()
+      var i = 1
 
-      val merged = randomCentersColors.union(missingCentersColors)
+      do {
+        logger.info("Iteration " + i)
+        missingCenters = selectMissingCenters(partitionedGraph, alreadyCovered, 0.2*i)
+          .forceAndDebugCount("Missing centers select")
+
+        val missingCentersColors = propagateColors(partitionedGraph, missingCenters, radius+1)
+          .forceAndDebug("Second propagate colors")
+
+        alreadyCovered = missingCentersColors
+        centers += missingCentersColors
+        i += 1
+      } while(missingCenters.count() > 0)
+
+
+      val merged = centers.reduce(_ union _)
         .reduceByKey({(u,v) => u merge v})
         .forceAndDebug("Merge of graphs")
 
@@ -184,7 +198,8 @@ object FloodBallDecomposition2 {
 
   def selectMissingCenters(
                             graph: RDD[(NodeId, FloodBallDecompositionVertex)],
-                            centers: RDD[(NodeId, FloodBallDecompositionVertex)])
+                            centers: RDD[(NodeId, FloodBallDecompositionVertex)],
+                            probability: Double)
   : RDD[(NodeId, FloodBallDecompositionVertex)] = {
 
     graph.union(centers)
@@ -216,7 +231,8 @@ object FloodBallDecomposition2 {
         .reduceByKey(partitioner, {(a, b) => merge(a,b)})
         .forceAndDebugCount("New colors")
 
-      cnts = graph.join(newColors, partitioner)
+      cnts = graph
+        .join(newColors, partitioner)
         .mapValues({case (vertex, cs) => vertex.addColors(cs)})
         .union(cnts)
         .reduceByKey(partitioner, {(u,v) => u merge v})
