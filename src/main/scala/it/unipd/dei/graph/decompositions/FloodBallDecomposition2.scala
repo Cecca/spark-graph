@@ -31,6 +31,25 @@ class FloodBallDecompositionVertex(
                                     val neighbours: Neighbourhood,
                                     val colors: Array[Color]) extends Serializable {
 
+  /**
+   * This is the list of updates to be exchanged with neighbours.
+   * It is updated in the following occasions:
+   *
+   *  - New colors are added: the update list will have all the colors added
+   *  - The update list is used: then it should be reset
+   */
+  private var _updateList: Array[Color] = colors
+
+  /**
+   * Gets the update list of this vertex and resets it.
+   * @return the update list of this vertex
+   */
+  def updateList: Array[Color] = {
+    val toRet = _updateList
+    _updateList = Array()
+    toRet
+  }
+
   def isCenter(id: NodeId) = {
     colors.contains(id)
   }
@@ -77,7 +96,6 @@ object FloodBallDecomposition2 {
   }
 
   def merge(a: Array[Color], b: Array[Color]): Array[Color] = {
-//    (a ++ b).distinct
     ArrayUtils.merge(a,b)
   }
 
@@ -129,7 +147,7 @@ object FloodBallDecomposition2 {
   def selectCenters(graph: RDD[(NodeId, FloodBallDecompositionVertex)], centerProbability: Double)
   : RDD[(NodeId, FloodBallDecompositionVertex)] = {
     val centers: RDD[(NodeId, FloodBallDecompositionVertex)] =
-      graph.map({
+      graph.map({ // TODO switch to mapValues
         case (id, vertex) =>
           if (new Random().nextDouble() < centerProbability) {
             (id, vertex.withNewColors(Array(id)))
