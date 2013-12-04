@@ -130,14 +130,18 @@ object FloodBallDecomposition2 {
 
       val missingCentersColors = propagateColors(missingCenters, radius).forceAndDebug("Second propagate colors")
 
-      val coloredGraph = randomCentersColors.union(missingCentersColors)
-        .reduceByKey({(a,b) => a merge b})
-        .forceAndDebug("Union")
-
-      propagateColors(coloredGraph, radius + 1)
+      val centers1 = propagateColors(randomCentersColors, radius + 1)
         .filter({case (id, vertex) => vertex.isCenter(id)})
         .mapValues({case center => center.colors})
-        .forceAndDebug("Final propagation")
+        .forceAndDebug("Final propagation of random centers")
+
+      val centers2 = propagateColors(missingCentersColors, radius + 1)
+        .filter({case (id, vertex) => vertex.isCenter(id)})
+        .mapValues({case center => center.colors})
+        .forceAndDebug("Final propagation of missing centers")
+
+      centers1.union(centers2)
+        .forceAndDebug("Union")
     }
   }
 
