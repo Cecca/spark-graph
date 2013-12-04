@@ -63,7 +63,7 @@ class FloodBallDecompositionVertex(
   }
 
   def isCovered: Boolean = {
-    colors.isEmpty
+    !colors.isEmpty
   }
 
   def merge(other: FloodBallDecompositionVertex): FloodBallDecompositionVertex = {
@@ -141,28 +141,33 @@ object FloodBallDecomposition2 {
       val randomCentersColors = propagateColors(partitionedGraph, randomCenters, radius+1)
         .forceAndDebug("First propagate colors")
 
-      val centers = mutable.MutableList(randomCentersColors)
-      var alreadyCovered = randomCentersColors
-      var missingCenters: RDD[(NodeId, FloodBallDecompositionVertex)] = ()
+      var merged = randomCentersColors
+      var missingCenters: RDD[(NodeId, FloodBallDecompositionVertex)] = null
+      var missingCentersCount = 1L
       var i = 1
 
       do {
-        logger.info("Iteration " + i)
-        missingCenters = selectMissingCenters(partitionedGraph, alreadyCovered, 0.2*i)
+        val prob = 0.5*i
+        logger.info("Iteration {}, probability of selection {}", i, prob)
+        missingCenters = selectMissingCenters(partitionedGraph, merged, prob)
           .forceAndDebugCount("Missing centers select")
 
         val missingCentersColors = propagateColors(partitionedGraph, missingCenters, radius+1)
           .forceAndDebug("Second propagate colors")
 
-        alreadyCovered = missingCentersColors
-        centers += missingCentersColors
+        merged = merged.union(missingCentersColors)
+          .reduceByKey({(u,v) => u merge v})
+          .forceAndDebug("Merge of graphs")
         i += 1
-      } while(missingCenters.count() > 0)
+
+        missingCentersCount = missingCenters.count()
+        logger.info("Missing centers: {}", missingCentersCount)
+      } while(missingCentersCount > 0)
 
 
-      val merged = centers.reduce(_ union _)
-        .reduceByKey({(u,v) => u merge v})
-        .forceAndDebug("Merge of graphs")
+//      val merged = centers.reduce(_ union _)
+//        .reduceByKey({(u,v) => u merge v})
+//        .forceAndDebug("Merge of graphs")
 
       shrinkGraph(merged).forceAndDebug("Graph shrinking")
     }
@@ -185,7 +190,7 @@ object FloodBallDecomposition2 {
     val centers: RDD[(NodeId, FloodBallDecompositionVertex)] =
       graph.flatMap({
         case (id, vertex) =>
-          if (new Random().nextDouble() < centerProbability) {
+          if (new Random().nextDouble() <= centerProbability) {
             Seq((id, vertex.withNewColors(Array(id))))
           }
           else {
@@ -205,7 +210,7 @@ object FloodBallDecomposition2 {
     graph.union(centers)
       .reduceByKey({_ merge _})
       .flatMap { case (node, vertex) =>
-        if (!vertex.isCovered) {
+        if (!vertex.isCovered && new Random().nextDouble() < probability) {
           Seq((node, vertex.withNewColors(Array(node))))
         }
         else {
