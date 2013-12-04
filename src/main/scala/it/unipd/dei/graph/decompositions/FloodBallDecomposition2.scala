@@ -55,6 +55,8 @@ class FloodBallDecompositionVertex(
     toRet
   }
 
+  def allColors: Array[Color] = ArrayUtils.merge(overlapZoneColors, colors)
+
   def isCenter(id: NodeId): Boolean = {
     overlapZoneColors.contains(id)
   }
@@ -231,7 +233,7 @@ object FloodBallDecomposition2 {
     coloredNodes
       .flatMap({ case (node, vertex) =>
         val cs = vertex.colors
-        vertex.overlapZoneColors.map({c =>  (c, cs)})
+        vertex.allColors.map({c =>  (c, cs)})
       })
       .reduceByKey({ArrayUtils.merge(_, _)})
       .filter({case (id, cs) => cs.contains(id)})
