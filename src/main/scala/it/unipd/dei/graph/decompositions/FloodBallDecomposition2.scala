@@ -29,7 +29,14 @@ import GraphForceFunctions._
 import Timer._
 
 class FloodBallDecompositionVertex(val neighbours: Neighbourhood) extends Serializable {
+  private var _colors: Array[Color] = null
+  def colors: Array[Color] = _colors
+  def colors_=(cs: Array[Color]): () = { _colors = cs }
 
+  def merge(other: FloodBallDecompositionVertex): FloodBallDecompositionVertex = {
+    this._colors = ArrayUtils.merge(this._colors, other._colors)
+    this
+  }
 }
 
 object FloodBallDecomposition2 {
