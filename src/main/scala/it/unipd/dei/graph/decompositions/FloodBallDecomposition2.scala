@@ -141,6 +141,7 @@ object FloodBallDecomposition2 {
         .forceAndDebug("Final propagation of missing centers")
 
       centers1.union(centers2)
+        .reduceByKey({(u,v) => ArrayUtils.merge(u,v)})
         .forceAndDebug("Union")
     }
   }
@@ -195,7 +196,7 @@ object FloodBallDecomposition2 {
 
     logger.info("Propagating colors")
 
-    val partitioner = centers.partitioner.getOrElse(new HashPartitioner(centers.sparkContext.defaultParallelism))
+    val partitioner = graph.partitioner.getOrElse(new HashPartitioner(centers.sparkContext.defaultParallelism))
 
     var cnts = centers
     for(i <- 0 until radius) {
@@ -211,11 +212,11 @@ object FloodBallDecomposition2 {
 //        })
 //        .forceAndDebug(" - Iteration " + i)
 
-      cnts = graph.join(newColors)
+      cnts = graph.join(newColors, partitioner)
         .mapValues({
           case (vertex, cs) => vertex.addColors(cs)
         })
-        .join(cnts)
+        .join(cnts, partitioner)
         .mapValues({case (u,v) => u merge v})
         .forceAndDebug(" - Iteration " + i)
     }
