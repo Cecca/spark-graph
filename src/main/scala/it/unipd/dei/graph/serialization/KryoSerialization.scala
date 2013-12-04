@@ -44,7 +44,7 @@ class GraphKryoRegistrator extends KryoRegistrator {
     val toRegister = List(
       new HyperLogLogCounter(4, 1234),
       new HyperAnfVertex(true, Array(), new HyperLogLogCounter(4,1234)),
-      new FloodBallDecompositionVertex(Array(), Array())
+      new FloodBallDecompositionVertex(Array(), Array(), Array())
     )
 
     toRegister.foreach { e =>
