@@ -192,7 +192,10 @@ object FloodBallDecomposition2 {
 
     var cnts = centers
     for(i <- 0 until radius) {
-      val newColors = cnts.flatMap(sendColorsToNeighbours).reduceByKey(partitioner, {(a, b) => merge(a,b)})
+      val newColors = cnts
+        .flatMap(sendColorsToNeighbours)
+        .reduceByKey(partitioner, {(a, b) => merge(a,b)})
+        .forceAndDebugCount("New colors")
       val grouped = cnts.leftOuterJoin(newColors, partitioner)
       cnts = grouped
         .mapValues({
