@@ -27,7 +27,7 @@ object ArrayUtils {
     var aIdx = 0
     var bIdx = 0
 
-    var result: Array[NodeId] = Array.ofDim(a.length)
+    var result: Array[NodeId] = Array.ofDim(a.length+1)
 
     // merge the first elements
     while(aIdx < a.length && bIdx < b.length) {
