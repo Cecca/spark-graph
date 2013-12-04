@@ -126,7 +126,7 @@ object FloodBallDecomposition2 {
       
       val randomCentersColors = propagateColors(partitionedGraph, randomCenters, radius).forceAndDebug("First propagate colors")
       
-      val missingCenters = selectMissingCenters(randomCentersColors).forceAndDebug("Missing centers select")
+      val missingCenters = selectMissingCenters(partitionedGraph, randomCentersColors).forceAndDebug("Missing centers select")
 
       val missingCentersColors = propagateColors(partitionedGraph, missingCenters, radius).forceAndDebug("Second propagate colors")
 
@@ -143,6 +143,22 @@ object FloodBallDecomposition2 {
       centers1.union(centers2)
         .reduceByKey({(u,v) => ArrayUtils.merge(u,v)})
         .forceAndDebug("Union")
+
+//      val mergedColors = randomCentersColors.union(missingCentersColors)
+//        .reduceByKey({(u, v) => u merge v})
+//        .forceAndDebug("Merging of datasets")
+//
+//      val mergedCount = mergedColors.count()
+//      val originalCount = partitionedGraph.count()
+//
+//      if(mergedCount != originalCount) {
+//        throw new RuntimeException(mergedCount + " != " + originalCount)
+//      }
+//
+//      propagateColors(partitionedGraph, mergedColors, radius + 1)
+//        .filter({case (id, vertex) => vertex.isCenter(id)})
+//        .mapValues({case center => center.colors})
+//        .forceAndDebug("Final propagation of colors")
     }
   }
 
@@ -174,10 +190,14 @@ object FloodBallDecomposition2 {
     centers
   }
 
-  def selectMissingCenters(centers: RDD[(NodeId, FloodBallDecompositionVertex)])
+  def selectMissingCenters(
+                            graph: RDD[(NodeId, FloodBallDecompositionVertex)],
+                            centers: RDD[(NodeId, FloodBallDecompositionVertex)])
   : RDD[(NodeId, FloodBallDecompositionVertex)] = {
-    val missing: RDD[(NodeId, FloodBallDecompositionVertex)] =
-      centers.flatMap { case (node, vertex) =>
+
+    graph.union(centers)
+      .reduceByKey({_ merge _})
+      .flatMap { case (node, vertex) =>
         if (vertex.colors.isEmpty) {
           Seq((node, vertex.withNewColors(Array(node))))
         }
@@ -185,7 +205,6 @@ object FloodBallDecomposition2 {
           Seq()
         }
       }
-    missing
   }
 
   def propagateColors(
@@ -216,8 +235,8 @@ object FloodBallDecomposition2 {
         .mapValues({
           case (vertex, cs) => vertex.addColors(cs)
         })
-        .join(cnts, partitioner)
-        .mapValues({case (u,v) => u merge v})
+        .union(cnts)
+        .reduceByKey(partitioner, {(u,v) => u merge v})
         .forceAndDebug(" - Iteration " + i)
     }
 
