@@ -35,8 +35,11 @@ class FloodBallDecompositionVertex(
    * This is the list of updates to be exchanged with neighbours.
    * It is updated in the following occasions:
    *
+   *  - The vertex is created: the update list consists of all the colors
+   *    assigned to the node at the time of creation
    *  - New colors are added: the update list will have all the colors added
    *  - The update list is used: then it should be reset
+   *  - Two vertices are merged: the update lists are merged too
    */
   private var _updateList: Array[Color] = colors
 
@@ -56,17 +59,23 @@ class FloodBallDecompositionVertex(
 
   def merge(other: FloodBallDecompositionVertex): FloodBallDecompositionVertex = {
     val newColors = ArrayUtils.merge(this.colors, other.colors)
-    new FloodBallDecompositionVertex(neighbours, newColors)
+    val newUpdateList = ArrayUtils.merge(this._updateList, other._updateList)
+    val mergedVertex = new FloodBallDecompositionVertex(neighbours, newColors)
+    mergedVertex._updateList = newUpdateList
+    mergedVertex
   }
 
   def addColors(cs: Array[Color]): FloodBallDecompositionVertex = {
-    new FloodBallDecompositionVertex(neighbours, ArrayUtils.merge(colors, cs))
+    val newVertex = new FloodBallDecompositionVertex(neighbours, ArrayUtils.merge(colors, cs))
+    newVertex._updateList = ArrayUtils.diff(cs, colors)
+    newVertex
   }
 
   def addColors(maybeColors: Option[Array[Color]]): FloodBallDecompositionVertex = {
     maybeColors.map { cs =>
       addColors(cs)
     } getOrElse {
+      this._updateList = Array() // the colors have already been sent in the previous iteration
       this
     }
   }
@@ -87,7 +96,7 @@ object FloodBallDecomposition2 {
   def sendColorsToNeighbours(data: (NodeId, FloodBallDecompositionVertex))
   : TraversableOnce[(NodeId, Array[Color])] = data match {
     case (id, vertex) => {
-      val colors = vertex.colors
+      val colors = vertex.updateList
       if(colors.nonEmpty)
         vertex.neighbours.map((_, colors))
       else
