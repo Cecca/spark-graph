@@ -190,7 +190,7 @@ object FloodBallDecomposition2 {
     graph.union(centers)
       .reduceByKey({_ merge _})
       .flatMap { case (node, vertex) =>
-        if (vertex.isCovered) {
+        if (!vertex.isCovered) {
           Seq((node, vertex.withNewColors(Array(node))))
         }
         else {
