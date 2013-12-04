@@ -60,14 +60,14 @@ class FloodBallDecompositionVertex(
   }
 
   def isCovered: Boolean = {
-    false
+    colors.isEmpty
   }
 
   def merge(other: FloodBallDecompositionVertex): FloodBallDecompositionVertex = {
-    val newColors = ArrayUtils.merge(this.overlapZoneColors, other.overlapZoneColors)
-    val newColorsLessOne = ArrayUtils.merge(this.overlapZoneColors, other.overlapZoneColors)
+    val newColors = ArrayUtils.merge(this.colors, other.colors)
+    val newOverlapColors = ArrayUtils.merge(this.overlapZoneColors, other.overlapZoneColors)
     val newUpdateList = ArrayUtils.merge(this._updateList, other._updateList)
-    val mergedVertex = new FloodBallDecompositionVertex(neighbours, newColors, newColorsLessOne)
+    val mergedVertex = new FloodBallDecompositionVertex(neighbours, newColors, newOverlapColors)
     mergedVertex._updateList = newUpdateList
     mergedVertex
   }
@@ -75,7 +75,7 @@ class FloodBallDecompositionVertex(
   def addColors(cs: Array[Color]): FloodBallDecompositionVertex = {
     val newVertex = new FloodBallDecompositionVertex(
       neighbours,
-      ArrayUtils.merge(overlapZoneColors, cs),
+      cs,
       ArrayUtils.merge(overlapZoneColors, colors))
     newVertex._updateList = ArrayUtils.diff(cs, overlapZoneColors)
     newVertex
@@ -132,13 +132,17 @@ object FloodBallDecomposition2 {
     val partitionedGraph = partition(graph)
 
     timedForce("flood-ball-decomposition") {
-      val randomCenters = selectCenters(partitionedGraph, centerProbability).forceAndDebug("Random centers select")
+      val randomCenters = selectCenters(partitionedGraph, centerProbability)
+        .forceAndDebugCount("Random centers select")
       
-      val randomCentersColors = propagateColors(partitionedGraph, randomCenters, radius+1).forceAndDebug("First propagate colors")
+      val randomCentersColors = propagateColors(partitionedGraph, randomCenters, radius+1)
+        .forceAndDebug("First propagate colors")
       
-      val missingCenters = selectMissingCenters(partitionedGraph, randomCentersColors).forceAndDebug("Missing centers select")
+      val missingCenters = selectMissingCenters(partitionedGraph, randomCentersColors)
+        .forceAndDebugCount("Missing centers select")
 
-      val missingCentersColors = propagateColors(partitionedGraph, missingCenters, radius+1).forceAndDebug("Second propagate colors")
+      val missingCentersColors = propagateColors(partitionedGraph, missingCenters, radius+1)
+        .forceAndDebug("Second propagate colors")
 
       val merged = randomCentersColors.union(missingCentersColors)
         .reduceByKey({(u,v) => u merge v})
@@ -211,9 +215,7 @@ object FloodBallDecomposition2 {
         .forceAndDebugCount("New colors")
 
       cnts = graph.join(newColors, partitioner)
-        .mapValues({
-          case (vertex, cs) => vertex.addColors(cs)
-        })
+        .mapValues({case (vertex, cs) => vertex.addColors(cs)})
         .union(cnts)
         .reduceByKey(partitioner, {(u,v) => u merge v})
         .forceAndDebug(" - Iteration " + i)
@@ -226,14 +228,13 @@ object FloodBallDecomposition2 {
   : RDD[(NodeId, Neighbourhood)] = {
     logger.info("Sending colors to predecessors graph")
 
-    val partitioner = new HashPartitioner(coloredNodes.sparkContext.defaultParallelism)
-
     coloredNodes
       .flatMap({ case (node, vertex) =>
         val cs = vertex.colors
         vertex.overlapZoneColors.map({c =>  (c, cs)})
       })
       .reduceByKey({ArrayUtils.merge(_, _)})
+      .filter({case (id, cs) => cs.contains(id)})
   }
 
 }
