@@ -124,18 +124,18 @@ object FloodBallDecomposition2 {
     timedForce("flood-ball-decomposition") {
       val randomCenters = selectCenters(partitionedGraph, centerProbability).forceAndDebug("Random centers select")
       
-      val randomCentersColors = propagateColors(randomCenters, radius).forceAndDebug("First propagate colors")
+      val randomCentersColors = propagateColors(partitionedGraph, randomCenters, radius).forceAndDebug("First propagate colors")
       
       val missingCenters = selectMissingCenters(randomCentersColors).forceAndDebug("Missing centers select")
 
-      val missingCentersColors = propagateColors(missingCenters, radius).forceAndDebug("Second propagate colors")
+      val missingCentersColors = propagateColors(partitionedGraph, missingCenters, radius).forceAndDebug("Second propagate colors")
 
-      val centers1 = propagateColors(randomCentersColors, radius + 1)
+      val centers1 = propagateColors(partitionedGraph, randomCentersColors, radius + 1)
         .filter({case (id, vertex) => vertex.isCenter(id)})
         .mapValues({case center => center.colors})
         .forceAndDebug("Final propagation of random centers")
 
-      val centers2 = propagateColors(missingCentersColors, radius + 1)
+      val centers2 = propagateColors(partitionedGraph, missingCentersColors, radius + 1)
         .filter({case (id, vertex) => vertex.isCenter(id)})
         .mapValues({case center => center.colors})
         .forceAndDebug("Final propagation of missing centers")
@@ -160,13 +160,13 @@ object FloodBallDecomposition2 {
   def selectCenters(graph: RDD[(NodeId, FloodBallDecompositionVertex)], centerProbability: Double)
   : RDD[(NodeId, FloodBallDecompositionVertex)] = {
     val centers: RDD[(NodeId, FloodBallDecompositionVertex)] =
-      graph.map({ // TODO switch to mapValues
+      graph.flatMap({
         case (id, vertex) =>
           if (new Random().nextDouble() < centerProbability) {
-            (id, vertex.withNewColors(Array(id)))
+            Seq((id, vertex.withNewColors(Array(id))))
           }
           else {
-            (id, vertex)
+            Seq()
           }
       })
 
@@ -176,18 +176,21 @@ object FloodBallDecomposition2 {
   def selectMissingCenters(centers: RDD[(NodeId, FloodBallDecompositionVertex)])
   : RDD[(NodeId, FloodBallDecompositionVertex)] = {
     val missing: RDD[(NodeId, FloodBallDecompositionVertex)] =
-      centers.map { case (node, vertex) =>
+      centers.flatMap { case (node, vertex) =>
         if (vertex.colors.isEmpty) {
-          (node, vertex.withNewColors(Array(node)))
+          Seq((node, vertex.withNewColors(Array(node))))
         }
         else {
-          (node, vertex.withNewColors(Array()))
+          Seq()
         }
       }
     missing
   }
 
-  def propagateColors(centers: RDD[(NodeId, FloodBallDecompositionVertex)], radius: Int)
+  def propagateColors(
+                       graph: RDD[(NodeId, FloodBallDecompositionVertex)],
+                       centers: RDD[(NodeId, FloodBallDecompositionVertex)],
+                       radius: Int)
   : RDD[(NodeId, FloodBallDecompositionVertex)] = {
 
     logger.info("Propagating colors")
@@ -200,11 +203,20 @@ object FloodBallDecomposition2 {
         .flatMap(sendColorsToNeighbours)
         .reduceByKey(partitioner, {(a, b) => merge(a,b)})
         .forceAndDebugCount("New colors")
-      val grouped = cnts.leftOuterJoin(newColors, partitioner)
-      cnts = grouped
+
+//      cnts = cnts
+//        .leftOuterJoin(newColors, partitioner)
+//        .mapValues({
+//          case (vertex, cs) => vertex.addColors(cs)
+//        })
+//        .forceAndDebug(" - Iteration " + i)
+
+      cnts = graph.join(newColors)
         .mapValues({
           case (vertex, cs) => vertex.addColors(cs)
         })
+        .join(cnts)
+        .mapValues({case (u,v) => u merge v})
         .forceAndDebug(" - Iteration " + i)
     }
 
