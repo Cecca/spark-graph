@@ -20,6 +20,42 @@ package it.unipd.dei.graph
 object ArrayUtils {
 
   /**
+   * Returns the difference of two sorted arrays.
+   * Performs `a - b`, returning the array with all the elements
+   * of `a` that are not contained in `b`.
+   */
+  def diff(a: Array[NodeId], b: Array[NodeId]): Array[NodeId] = {
+    var res: Array[NodeId] = Array(a.length)
+    var i = 0
+    var aIdx = 0
+    var bIdx = 0
+
+    while (aIdx < a.length && bIdx < b.length) {
+      res = ensureCapacity(res, i)
+      if(a(aIdx) == b(bIdx)) {
+        aIdx += 1
+        bIdx += 1
+      } else if(a(aIdx) < b(bIdx)) {
+        res(i) = a(aIdx)
+        aIdx += 1
+        i += 1
+      } else {
+        bIdx += 1
+      }
+    }
+
+    //add all the remaining elements from a, if any
+    while (aIdx < a.length) {
+      res = ensureCapacity(res, i)
+      res(i) = a(aIdx)
+      aIdx += 1
+      i += 1
+    }
+
+    trim(res, i)
+  }
+
+  /**
    * Merge two sorted arrays
    */
   def merge(a: Array[NodeId], b: Array[NodeId]): Array[NodeId] = {
