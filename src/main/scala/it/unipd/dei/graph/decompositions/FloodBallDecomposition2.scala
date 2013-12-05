@@ -67,6 +67,34 @@ class FloodBallDecompositionVertex(
     !colors.isEmpty
   }
 
+  /**
+   * Returns true if the vertex should become a randomly selected center. The probability of a
+   * positive outcome is given by
+   *
+   * {{{
+   *      d_i
+   *    -------
+   *     delta
+   * }}}
+   *
+   * where d_i is the outdegree of the node. If
+   *
+   * {{{
+   *             2 m
+   *    delta = ------
+   *             n p
+   * }}}
+   *
+   * with m the number of edges in the graph and n the number of nodes in the graph,
+   * then the selected fraction of vertices will be `p n`.
+   *
+   * @param delta
+   * @return
+   */
+  def selectVertex(delta: Double): Boolean = {
+    new Random().nextDouble() <= (neighbours.length / delta)
+  }
+
   def merge(other: FloodBallDecompositionVertex): FloodBallDecompositionVertex = {
     val newColors = ArrayUtils.merge(this.colors, other.colors)
     val newOverlapColors = ArrayUtils.merge(this.overlapZoneColors, other.overlapZoneColors)
