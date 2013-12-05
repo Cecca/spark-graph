@@ -143,7 +143,7 @@ object FloodBallDecomposition2 {
 
       val coloredGraph = expandMissingBalls(partitionedGraph, randomCentersColors, radius, 0.5)
 
-      shrinkGraph(coloredGraph).forceAndDebug("Graph shrinking")
+      shrinkGraph(coloredGraph).forceAndDebug("  Graph shrinking")
     }
   }
 
@@ -154,11 +154,13 @@ object FloodBallDecomposition2 {
                          radius: Int)
   : RDD[(NodeId, FloodBallDecompositionVertex)] = {
 
+    logger.info("### Expanding randomly selected balls")
+
     val randomCenters = selectCenters(partitionedGraph, centerProbability)
-      .forceAndDebugCount("Random centers select")
+      .forceAndDebugCount("  Random centers select")
 
     propagateColors(partitionedGraph, randomCenters, radius + 1)
-      .forceAndDebug("First propagate colors")
+      .forceAndDebug("  Propagate colors for random balls")
   }
 
   def expandMissingBalls(
@@ -168,28 +170,30 @@ object FloodBallDecomposition2 {
                           probability: Double)
   : RDD[(NodeId, FloodBallDecompositionVertex)] = {
 
+    logger.info("### Expanding balls centered on uncovered nodes, with base probability {}", probability)
+
     var i = 1
     var merged = existingBalls
     var missingCenters = selectMissingCenters(partitionedGraph, merged, probability)
-      .forceAndDebugCount("Missing centers select")
+      .forceAndDebugCount("  Missing centers select")
     var missingCentersCount: Long = merged.filter(!_._2.isCovered).count()
 
     while (missingCentersCount > 0) {
       val prob = probability * i
-      logger.info("Iteration {}, probability of selection {}", i, prob)
+      logger.info("  Iteration {}, probability of selection {}", i, prob)
 
       val missingCentersColors = propagateColors(partitionedGraph, missingCenters, radius + 1)
-        .forceAndDebug("Second propagate colors")
+        .forceAndDebug("  Second propagate colors")
 
       merged = merged.union(missingCentersColors)
         .reduceByKey({ (u, v) => u merge v })
-        .forceAndDebug("Merge of graphs")
+        .forceAndDebug("  Merge of graphs")
 
       missingCenters = selectMissingCenters(partitionedGraph, merged, prob)
-        .forceAndDebugCount("Missing centers select")
+        .forceAndDebugCount("  Missing centers select")
 
       missingCentersCount = merged.filter(!_._2.isCovered).count()
-      logger.info("Missing centers: {}", missingCentersCount)
+      logger.info("  Missing centers: {}", missingCentersCount)
 
       i += 1
     }
@@ -201,7 +205,7 @@ object FloodBallDecomposition2 {
 
     val numPartitions = graph.sparkContext.defaultParallelism
 
-    logger.info("Partitioning graph in {} partitions, using HashPartitioner", numPartitions)
+    logger.info("### Partitioning graph in {} partitions, using HashPartitioner", numPartitions)
 
     graph
       .partitionBy(new HashPartitioner(numPartitions))
@@ -211,18 +215,19 @@ object FloodBallDecomposition2 {
 
   def selectCenters(graph: RDD[(NodeId, FloodBallDecompositionVertex)], centerProbability: Double)
   : RDD[(NodeId, FloodBallDecompositionVertex)] = {
-    val centers: RDD[(NodeId, FloodBallDecompositionVertex)] =
-      graph.flatMap({
-        case (id, vertex) =>
-          if (new Random().nextDouble() <= centerProbability) {
-            Seq((id, vertex.withNewColors(Array(id))))
-          }
-          else {
-            Seq()
-          }
-      })
 
-    centers
+    logger.info("#### Selecting centers at random")
+
+    graph.flatMap({
+      case (id, vertex) =>
+        if (new Random().nextDouble() <= centerProbability) {
+          Seq((id, vertex.withNewColors(Array(id))))
+        }
+        else {
+          Seq()
+        }
+    })
+
   }
 
   def selectMissingCenters(
@@ -230,6 +235,8 @@ object FloodBallDecomposition2 {
                             centers: RDD[(NodeId, FloodBallDecompositionVertex)],
                             probability: Double)
   : RDD[(NodeId, FloodBallDecompositionVertex)] = {
+
+    logger.info("#### Selecting ceneters from uncovered nodes")
 
     graph.union(centers)
       .reduceByKey({_ merge _})
@@ -248,7 +255,7 @@ object FloodBallDecomposition2 {
                        radius: Int)
   : RDD[(NodeId, FloodBallDecompositionVertex)] = {
 
-    logger.info("Propagating colors")
+    logger.info("#### Propagating colors")
 
     val partitioner = graph.partitioner.getOrElse(new HashPartitioner(centers.sparkContext.defaultParallelism))
 
@@ -257,7 +264,7 @@ object FloodBallDecomposition2 {
       val newColors = cnts
         .flatMap(sendColorsToNeighbours)
         .reduceByKey(partitioner, {(a, b) => merge(a,b)}) // this is the costly operation
-        .forceAndDebugCount("New colors")
+        .forceAndDebugCount("  New colors")
 
       cnts = graph
         .join(newColors, partitioner)
@@ -272,7 +279,7 @@ object FloodBallDecomposition2 {
 
   def shrinkGraph(coloredNodes: RDD[(NodeId, FloodBallDecompositionVertex)])
   : RDD[(NodeId, Neighbourhood)] = {
-    logger.info("Sending colors to predecessors graph")
+    logger.info("### Sending colors to predecessors graph")
 
     coloredNodes
       .flatMap({ case (node, vertex) =>
