@@ -2,7 +2,7 @@ import AssemblyKeys._
 
 name := "spark-graph"
 
-version := "0.4.2-SNAPSHOT"
+version := "0.4.2"
 
 scalaVersion := "2.9.3"
 
