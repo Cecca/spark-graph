@@ -164,7 +164,7 @@ object FloodBallDecomposition2 {
           .forceAndDebug("Merge of graphs")
         i += 1
 
-        missingCentersCount = missingCenters.count()
+        missingCentersCount = merged.filter(!_._2.isCovered).count()
         logger.info("Missing centers: {}", missingCentersCount)
       } while(missingCentersCount > 0)
 
@@ -214,7 +214,7 @@ object FloodBallDecomposition2 {
         } else {
           Seq()
         }
-      }.forceAndDebugCount("Newly selected centers")
+      }
   }
 
   def propagateColors(
