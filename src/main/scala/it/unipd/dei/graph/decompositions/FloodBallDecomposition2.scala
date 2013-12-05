@@ -145,31 +145,47 @@ object FloodBallDecomposition2 {
       val randomCentersColors = propagateColors(partitionedGraph, randomCenters, radius+1)
         .forceAndDebug("First propagate colors")
 
-      var merged = randomCentersColors
-      var missingCenters: RDD[(NodeId, FloodBallDecompositionVertex)] = null
-      var missingCentersCount = 1L
-      var i = 1
-
-      do {
-        val prob = 0.5*i
-        logger.info("Iteration {}, probability of selection {}", i, prob)
-        missingCenters = selectMissingCenters(partitionedGraph, merged, prob)
-          .forceAndDebugCount("Missing centers select")
-
-        val missingCentersColors = propagateColors(partitionedGraph, missingCenters, radius+1)
-          .forceAndDebug("Second propagate colors")
-
-        merged = merged.union(missingCentersColors)
-          .reduceByKey({(u,v) => u merge v})
-          .forceAndDebug("Merge of graphs")
-        i += 1
-
-        missingCentersCount = merged.filter(!_._2.isCovered).count()
-        logger.info("Missing centers: {}", missingCentersCount)
-      } while(missingCentersCount > 0)
+      val merged = expandMissingBalls(partitionedGraph, randomCentersColors, radius, 0.5)
 
       shrinkGraph(merged).forceAndDebug("Graph shrinking")
     }
+  }
+
+
+  def expandMissingBalls(
+                          partitionedGraph: RDD[(NodeId, FloodBallDecompositionVertex)],
+                          existingBalls: RDD[(NodeId, FloodBallDecompositionVertex)],
+                          radius: Int,
+                          probability: Double)
+  : RDD[(NodeId, FloodBallDecompositionVertex)] = {
+
+    var i = 1
+    var merged = existingBalls
+    var missingCenters = selectMissingCenters(partitionedGraph, merged, probability)
+      .forceAndDebugCount("Missing centers select")
+    var missingCentersCount: Long = merged.filter(!_._2.isCovered).count()
+
+    while (missingCentersCount > 0) {
+      val prob = probability * i
+      logger.info("Iteration {}, probability of selection {}", i, prob)
+
+      val missingCentersColors = propagateColors(partitionedGraph, missingCenters, radius + 1)
+        .forceAndDebug("Second propagate colors")
+
+      merged = merged.union(missingCentersColors)
+        .reduceByKey({ (u, v) => u merge v })
+        .forceAndDebug("Merge of graphs")
+
+      missingCenters = selectMissingCenters(partitionedGraph, merged, prob)
+        .forceAndDebugCount("Missing centers select")
+
+      missingCentersCount = merged.filter(!_._2.isCovered).count()
+      logger.info("Missing centers: {}", missingCentersCount)
+
+      i += 1
+    }
+
+    merged
   }
 
   def partition(graph: RDD[(NodeId, Neighbourhood)]) : RDD[(NodeId, FloodBallDecompositionVertex)] = {
