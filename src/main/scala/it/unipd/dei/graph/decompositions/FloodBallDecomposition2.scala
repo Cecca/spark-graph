@@ -184,13 +184,12 @@ object FloodBallDecomposition2 {
     }
 
     val partitionedGraph = partition(graph)
-    logger.info("Graph with {} nodes", partitionedGraph.count())
-
     val (numNodes, numEdges, delta) = computeDelta(partitionedGraph, centerProbability)
+    logger.info("Graph with {} nodes, {} edges. Delta = {}", numNodes+"", numEdges+"", delta+"")
 
     timedForce("flood-ball-decomposition") {
 
-      val randomCentersColors = expandRandomBalls(partitionedGraph, centerProbability, radius)
+      val randomCentersColors = expandRandomBalls(partitionedGraph, delta, radius)
 
       val coloredGraph = expandMissingBalls(partitionedGraph, randomCentersColors, radius, 0.5)
 
@@ -201,13 +200,13 @@ object FloodBallDecomposition2 {
 
   def expandRandomBalls(
                          partitionedGraph: RDD[(NodeId, FloodBallDecompositionVertex)],
-                         centerProbability: Double,
+                         delta: Double,
                          radius: Int)
   : RDD[(NodeId, FloodBallDecompositionVertex)] = {
 
     logger.info("### Expanding randomly selected balls")
 
-    val randomCenters = selectCenters(partitionedGraph, centerProbability)
+    val randomCenters = selectCenters(partitionedGraph, delta)
       .forceAndDebugCount("  Random centers select")
 
     propagateColors(partitionedGraph, randomCenters, radius + 1)
@@ -264,14 +263,14 @@ object FloodBallDecomposition2 {
       .force()
   }
 
-  def selectCenters(graph: RDD[(NodeId, FloodBallDecompositionVertex)], centerProbability: Double)
+  def selectCenters(graph: RDD[(NodeId, FloodBallDecompositionVertex)], delta: Double)
   : RDD[(NodeId, FloodBallDecompositionVertex)] = {
 
     logger.info("#### Selecting centers at random")
 
     graph.flatMap({
       case (id, vertex) =>
-        if (new Random().nextDouble() <= centerProbability) {
+        if (vertex.selectVertex(delta)) {
           Seq((id, vertex.withNewColors(Array(id))))
         }
         else {
