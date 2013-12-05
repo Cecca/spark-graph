@@ -227,7 +227,7 @@ object FloodBallDecomposition2 {
     var merged = existingBalls
     var missingCenters = selectMissingCenters(partitionedGraph, merged, probability)
       .forceAndDebugCount("  Missing centers select")
-    var missingCentersCount: Long = countMissingNodes(partitionedGraph, merged)
+    var missingCentersCount: Long = missingCenters.count()
 
     while (missingCentersCount > 0) {
       val prob = probability * i
@@ -243,20 +243,13 @@ object FloodBallDecomposition2 {
       missingCenters = selectMissingCenters(partitionedGraph, merged, prob)
         .forceAndDebugCount("  Missing centers select")
 
-      missingCentersCount = countMissingNodes(partitionedGraph, merged)
+      missingCentersCount = missingCenters.count()
       logger.info("  Missing centers: {}", missingCentersCount)
 
       i += 1
     }
 
     merged
-  }
-
-  def countMissingNodes(
-                         graph: RDD[(NodeId, FloodBallDecompositionVertex)],
-                         coveredNodes: RDD[(NodeId, FloodBallDecompositionVertex)])
-  : Long = {
-    graph.subtractByKey(coveredNodes.filter({_._2.isCovered})).count()
   }
 
   def partition(graph: RDD[(NodeId, Neighbourhood)]) : RDD[(NodeId, FloodBallDecompositionVertex)] = {
@@ -296,17 +289,11 @@ object FloodBallDecomposition2 {
 
     logger.info("#### Selecting centers from uncovered nodes")
 
-//    val missingCenters = graph.subtractByKey(centers.filter({_._2.isCovered}))
+    graph
+      .subtractByKey(centers.filter({_._2.isCovered}))
+      .map({ case (id, vertex) => (id, vertex.withNewColors(Array(id))) })
+      .cache()
 
-    graph.union(centers)
-      .reduceByKey({_ merge _})
-      .flatMap { case (node, vertex) =>
-        if(!vertex.isCovered && new Random().nextDouble() < probability) {
-          Seq((node, vertex.withNewColors(Array(node))))
-        } else {
-          Seq()
-        }
-      }
   }
 
   def propagateColors(
