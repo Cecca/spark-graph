@@ -30,9 +30,10 @@ import scala.collection.mutable
 
 class FloodBallDecompositionVertex(
                                     val neighbours: Neighbourhood,
-                                    val overlapZoneColors: Array[Color],
-                                    /** The array of colors at distance k-1 at iteration k */
-                                    val colors: Array[Color]) extends Serializable {
+                                    /** The array of colors at distance <= k-1 at iteration k */
+                                    val colors: Array[Color],
+                                    /** The array of colors at distance exactly k at iteration k */
+                                    val overlapZoneColors: Array[Color]) extends Serializable {
 
   /**
    * This is the list of updates to be exchanged with neighbours.
@@ -94,7 +95,7 @@ class FloodBallDecompositionVertex(
   }
 
   def withNewColors(newColors: Array[Color]): FloodBallDecompositionVertex = {
-    new FloodBallDecompositionVertex(neighbours, newColors, Array())
+    new FloodBallDecompositionVertex(neighbours, Array(), newColors)
   }
 }
 
@@ -135,6 +136,9 @@ object FloodBallDecomposition2 {
     val partitionedGraph = partition(graph)
 
     timedForce("flood-ball-decomposition") {
+
+      logger.info("Graph with {} nodes", partitionedGraph.count())
+
       val randomCenters = selectCenters(partitionedGraph, centerProbability)
         .forceAndDebugCount("Random centers select")
       
@@ -163,11 +167,6 @@ object FloodBallDecomposition2 {
         missingCentersCount = missingCenters.count()
         logger.info("Missing centers: {}", missingCentersCount)
       } while(missingCentersCount > 0)
-
-
-//      val merged = centers.reduce(_ union _)
-//        .reduceByKey({(u,v) => u merge v})
-//        .forceAndDebug("Merge of graphs")
 
       shrinkGraph(merged).forceAndDebug("Graph shrinking")
     }
@@ -210,13 +209,12 @@ object FloodBallDecomposition2 {
     graph.union(centers)
       .reduceByKey({_ merge _})
       .flatMap { case (node, vertex) =>
-        if (!vertex.isCovered && new Random().nextDouble() < probability) {
+        if(!vertex.isCovered && new Random().nextDouble() < probability) {
           Seq((node, vertex.withNewColors(Array(node))))
-        }
-        else {
+        } else {
           Seq()
         }
-      }
+      }.forceAndDebugCount("Newly selected centers")
   }
 
   def propagateColors(
@@ -233,7 +231,7 @@ object FloodBallDecomposition2 {
     for(i <- 0 until radius) {
       val newColors = cnts
         .flatMap(sendColorsToNeighbours)
-        .reduceByKey(partitioner, {(a, b) => merge(a,b)})
+        .reduceByKey(partitioner, {(a, b) => merge(a,b)}) // this is the costly operation
         .forceAndDebugCount("New colors")
 
       cnts = graph
