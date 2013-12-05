@@ -122,7 +122,8 @@ object FloodBallDecomposition2 {
     ArrayUtils.merge(a,b)
   }
 
-  def floodBallDecomposition( graph: RDD[(NodeId, Neighbourhood)],
+  def floodBallDecomposition(
+                              graph: RDD[(NodeId, Neighbourhood)],
                               radius: Int,
                               centerProbability: Double)
   : RDD[(NodeId, Neighbourhood)] = {
@@ -134,23 +135,31 @@ object FloodBallDecomposition2 {
     }
 
     val partitionedGraph = partition(graph)
+    logger.info("Graph with {} nodes", partitionedGraph.count())
 
     timedForce("flood-ball-decomposition") {
 
-      logger.info("Graph with {} nodes", partitionedGraph.count())
+      val randomCentersColors = expandRandomBalls(partitionedGraph, centerProbability, radius)
 
-      val randomCenters = selectCenters(partitionedGraph, centerProbability)
-        .forceAndDebugCount("Random centers select")
-      
-      val randomCentersColors = propagateColors(partitionedGraph, randomCenters, radius+1)
-        .forceAndDebug("First propagate colors")
+      val coloredGraph = expandMissingBalls(partitionedGraph, randomCentersColors, radius, 0.5)
 
-      val merged = expandMissingBalls(partitionedGraph, randomCentersColors, radius, 0.5)
-
-      shrinkGraph(merged).forceAndDebug("Graph shrinking")
+      shrinkGraph(coloredGraph).forceAndDebug("Graph shrinking")
     }
   }
 
+
+  def expandRandomBalls(
+                         partitionedGraph: RDD[(NodeId, FloodBallDecompositionVertex)],
+                         centerProbability: Double,
+                         radius: Int)
+  : RDD[(NodeId, FloodBallDecompositionVertex)] = {
+
+    val randomCenters = selectCenters(partitionedGraph, centerProbability)
+      .forceAndDebugCount("Random centers select")
+
+    propagateColors(partitionedGraph, randomCenters, radius + 1)
+      .forceAndDebug("First propagate colors")
+  }
 
   def expandMissingBalls(
                           partitionedGraph: RDD[(NodeId, FloodBallDecompositionVertex)],
