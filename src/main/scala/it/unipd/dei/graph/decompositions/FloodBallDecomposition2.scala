@@ -192,6 +192,7 @@ object FloodBallDecomposition2 {
       val randomCentersColors = expandRandomBalls(partitionedGraph, delta, radius)
 
       val coloredGraph = expandMissingBalls(partitionedGraph, randomCentersColors, radius, 0.5)
+        .forceAndDebugCount("  Expansion of missing balls")
 
       shrinkGraph(coloredGraph).forceAndDebug("  Graph shrinking")
     }
@@ -226,7 +227,7 @@ object FloodBallDecomposition2 {
     var merged = existingBalls
     var missingCenters = selectMissingCenters(partitionedGraph, merged, probability)
       .forceAndDebugCount("  Missing centers select")
-    var missingCentersCount: Long = merged.filter(!_._2.isCovered).count()
+    var missingCentersCount: Long = countMissingNodes(partitionedGraph, merged)
 
     while (missingCentersCount > 0) {
       val prob = probability * i
@@ -242,13 +243,20 @@ object FloodBallDecomposition2 {
       missingCenters = selectMissingCenters(partitionedGraph, merged, prob)
         .forceAndDebugCount("  Missing centers select")
 
-      missingCentersCount = merged.filter(!_._2.isCovered).count()
+      missingCentersCount = countMissingNodes(partitionedGraph, merged)
       logger.info("  Missing centers: {}", missingCentersCount)
 
       i += 1
     }
 
     merged
+  }
+
+  def countMissingNodes(
+                         graph: RDD[(NodeId, FloodBallDecompositionVertex)],
+                         coveredNodes: RDD[(NodeId, FloodBallDecompositionVertex)])
+  : Long = {
+    graph.subtractByKey(coveredNodes.filter({_._2.isCovered})).count()
   }
 
   def partition(graph: RDD[(NodeId, Neighbourhood)]) : RDD[(NodeId, FloodBallDecompositionVertex)] = {
@@ -286,7 +294,9 @@ object FloodBallDecomposition2 {
                             probability: Double)
   : RDD[(NodeId, FloodBallDecompositionVertex)] = {
 
-    logger.info("#### Selecting ceneters from uncovered nodes")
+    logger.info("#### Selecting centers from uncovered nodes")
+
+//    val missingCenters = graph.subtractByKey(centers.filter({_._2.isCovered}))
 
     graph.union(centers)
       .reduceByKey({_ merge _})
