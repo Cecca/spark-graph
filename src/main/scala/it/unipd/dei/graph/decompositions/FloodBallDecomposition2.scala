@@ -150,6 +150,27 @@ object FloodBallDecomposition2 {
     ArrayUtils.merge(a,b)
   }
 
+  /**
+   *
+   * @param graph the input graph
+   * @param p the fraction of desired centers
+   * @return a tuple (num_nodes, num_edges, delta)
+   */
+  def computeDelta(
+                    graph: RDD[(NodeId, FloodBallDecompositionVertex)],
+                    p: Double)
+  : (Long, Long, Double) = {
+    val twiceNumEdgesAcc = graph.sparkContext.accumulator(0L)
+
+    graph.foreach({case (_, vertex) => twiceNumEdgesAcc.add(vertex.neighbours.length) })
+    val numNodes = graph.count()
+    val twiceNumEdges = twiceNumEdgesAcc.value
+
+    val delta = twiceNumEdges / (numNodes * p)
+    
+    (numNodes,(twiceNumEdges / 2), delta)
+  }
+
   def floodBallDecomposition(
                               graph: RDD[(NodeId, Neighbourhood)],
                               radius: Int,
@@ -164,6 +185,8 @@ object FloodBallDecomposition2 {
 
     val partitionedGraph = partition(graph)
     logger.info("Graph with {} nodes", partitionedGraph.count())
+
+    val (numNodes, numEdges, delta) = computeDelta(partitionedGraph, centerProbability)
 
     timedForce("flood-ball-decomposition") {
 
