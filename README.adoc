@@ -1,0 +1,13 @@
+= spark-graph =
+
+:icons: font
+
+`spark-graph` is a software package implementing various algorithms
+geared towards the approximation of the diameter of large graphs.
+
+[WARNING]
+====
+Development of `spark-graph` has moved to a private repository. The
+code will be made publicly available soon. In the meantime, you can
+contact me for more information.
+====
